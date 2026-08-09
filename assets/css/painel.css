@@ -30,6 +30,20 @@
   font-size: 14px;
 }
 
+/* — Layout desktop (≥1024px) — elementos novos ficam ocultos por padrão;
+   só aparecem dentro do bloco @media (min-width: 1024px) lá embaixo. */
+.pnl-sidebar,
+.pnl-dash-charts,
+.pnl-search,
+.pnl-view-toggle,
+.pnl-select-check {
+  display: none;
+}
+.pnl-photo-field.is-dragover {
+  border-color: var(--rc-yellow);
+  background: rgba(216, 179, 74, .06);
+}
+
 /* — Login ------------------------------------------------------------- */
 
 .pnl-login {
@@ -330,9 +344,6 @@
 }
 @media (min-width: 640px) {
   .pnl-dash-grid { grid-template-columns: repeat(3, 1fr); }
-}
-@media (min-width: 960px) {
-  .pnl-dash-grid { grid-template-columns: repeat(6, 1fr); }
 }
 
 .pnl-stat-card {
@@ -760,6 +771,254 @@
   color: #ff9c9c;
 }
 .pnl-btn-danger:hover { background: rgba(226, 106, 106, .24); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DESKTOP (≥1024px) — sidebar, gráficos, tabela, seleção em lote, drawer.
+   Abaixo de 1024px nada deste bloco se aplica.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+
+  /* — Casca: sidebar + header + conteúdo em grid — */
+  .pnl-shell {
+    display: grid;
+    grid-template-columns: 264px minmax(0, 1fr);
+    grid-template-areas:
+      "sidebar header"
+      "sidebar main";
+  }
+  .pnl-header { grid-area: header; }
+  .pnl-tabs { display: none; }
+  #pnl-tab-dashboard,
+  #pnl-tab-produtos { grid-area: main; min-width: 0; }
+
+  .pnl-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    grid-area: sidebar;
+    padding: var(--space-6) var(--space-4);
+    border-right: 1px solid var(--rc-hairline);
+    background: var(--rc-surface);
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100svh;
+    overflow-y: auto;
+  }
+  .pnl-sidebar__brand { display: flex; align-items: center; gap: var(--space-3); }
+  .pnl-sidebar__mark { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; }
+  .pnl-sidebar__name {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    color: var(--rc-gold-soft);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    font-size: 13px;
+  }
+  .pnl-sidebar__nav { display: flex; flex-direction: column; gap: 4px; }
+  .pnl-side-tab {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 44px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 0;
+    background: transparent;
+    color: var(--color-neutral-400);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+  }
+  .pnl-side-tab:hover { color: var(--color-neutral-300); }
+  .pnl-side-tab.is-active { background: rgba(255, 212, 0, .14); color: var(--rc-yellow); }
+  .pnl-sidebar__logout {
+    margin-top: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(216, 179, 74, .35);
+    background: transparent;
+    color: var(--rc-gold-soft);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .pnl-sidebar__logout:hover { background: rgba(216, 179, 74, .12); }
+
+  /* — Gráficos do dashboard — */
+  .pnl-dash-charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-6);
+    margin-top: var(--space-2);
+  }
+  .pnl-chart-card--donut { grid-column: 1 / -1; }
+  .pnl-chart-card {
+    background: var(--rc-surface);
+    border: 1px solid var(--rc-hairline-soft);
+    border-radius: 14px;
+    padding: var(--space-4);
+  }
+  .pnl-chart-card__title {
+    margin: 0 0 var(--space-3);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--rc-title);
+  }
+  .pnl-chart-card__canvas-wrap { position: relative; height: 260px; }
+
+  /* — Toolbar de produtos: filtros + busca + seletor de visualização — */
+  #pnl-produtos-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .pnl-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 240px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, .12);
+    background: rgba(11, 12, 18, .7);
+    color: var(--color-neutral-400);
+  }
+  .pnl-search__input {
+    flex: 1;
+    background: none;
+    border: 0;
+    outline: 0;
+    color: var(--rc-title);
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .pnl-search__input::placeholder { color: var(--color-neutral-600); }
+  .pnl-view-toggle {
+    display: flex;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-left: auto;
+  }
+  .pnl-view-btn {
+    min-height: 38px;
+    padding: 0 14px;
+    border: 0;
+    background: transparent;
+    color: var(--color-neutral-400);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .pnl-view-btn.is-active { background: rgba(255, 212, 0, .14); color: var(--rc-yellow); }
+
+  /* — Seleção em lote — */
+  .pnl-select-check {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--rc-yellow);
+    cursor: pointer;
+  }
+  .pnl-card .pnl-select-check { position: absolute; top: 10px; left: 10px; z-index: 2; }
+  .pnl-bulk-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-4);
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--rc-hairline);
+    background: rgba(216, 179, 74, .06);
+  }
+  .pnl-bulk-bar__count { font-size: 13px; font-weight: 600; color: var(--rc-gold-soft); }
+  .pnl-bulk-bar__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pnl-bulk-btn {
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, .12);
+    background: transparent;
+    color: var(--color-neutral-300);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .pnl-bulk-btn:hover { border-color: rgba(216, 179, 74, .5); color: var(--rc-yellow); }
+  .pnl-bulk-btn--danger:hover { border-color: rgba(226, 106, 106, .55); color: #e26a6a; }
+  .pnl-bulk-btn--ghost { border-color: transparent; }
+
+  /* — Tabela — */
+  .pnl-table-wrap { border: 1px solid var(--rc-hairline-soft); border-radius: 14px; overflow: auto; }
+  .pnl-tabela { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 13px; }
+  .pnl-tabela th {
+    text-align: left;
+    padding: 10px 14px;
+    color: var(--color-neutral-500);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    border-bottom: 1px solid var(--rc-hairline-soft);
+  }
+  .pnl-tabela td { padding: 8px 14px; border-bottom: 1px solid var(--rc-hairline-soft); vertical-align: middle; }
+  .pnl-tabela tbody tr:hover { background: rgba(216, 179, 74, .04); }
+  .pnl-tabela__thumb { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; background: #101118; }
+  .pnl-tabela__acoes { display: flex; gap: 2px; }
+  .pnl-tabela__nome { color: var(--rc-title); font-weight: 500; }
+
+  /* — Botão "Adicionar produto": para de ser barra fixa full-width — */
+  #pnl-tab-produtos { padding-bottom: 0; }
+  .pnl-fab-bar { position: sticky; bottom: 0; background: none; padding: var(--space-4) 0 0; pointer-events: auto; }
+  .pnl-fab-inner { max-width: none; }
+  .pnl-fab { width: auto; padding: 0 24px; margin-left: auto; box-shadow: 0 8px 22px rgba(0, 0, 0, .4); }
+
+  /* — Drawer: escopado por ID pra nunca afetar #pnl-confirm-backdrop,
+     que também é .pnl-backdrop — */
+  #pnl-modal-backdrop { align-items: stretch; justify-content: flex-end; }
+  #pnl-modal-backdrop .pnl-sheet {
+    width: min(440px, 92vw);
+    max-width: none;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    border-left: 1px solid var(--rc-hairline);
+    border-bottom: 0;
+    animation-name: pnlDrawer;
+  }
+  #pnl-modal-backdrop .pnl-form { overflow-y: auto; }
+
+  @keyframes pnlDrawer {
+    from { transform: translateX(24px); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+  }
+}
+
+@media (min-width: 1440px) {
+  .pnl-dash-charts { grid-template-columns: repeat(3, 1fr); }
+  .pnl-chart-card--donut { grid-column: auto; }
+}
+
+/* Rede de segurança: nunca deixar a tabela/barra em lote visíveis abaixo
+   do breakpoint, mesmo que o estado (visualização 'tabela') tenha ficado
+   de uma sessão redimensionada a partir do desktop. */
+@media (max-width: 1023.98px) {
+  #pnl-tabela,
+  #pnl-bulk-bar { display: none !important; }
+  #pnl-grid { display: grid !important; }
+}
 
 /* — Toast ------------------------------------------------------------------- */
 

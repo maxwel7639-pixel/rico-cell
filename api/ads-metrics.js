@@ -24,21 +24,78 @@ async function usuarioAutenticado(req) {
   }
 }
 
-function dadosMock(periodo) {
-  var base = periodo === '30d'
-    ? { gastoTotal: 1840.32, cliques: 1420, impressoes: 68500, resultados: 96 }
-    : { gastoTotal: 462.75, cliques: 356, impressoes: 17200, resultados: 24 };
+var PESOS_CATEGORIA = [
+  { categoria: 'iphone', peso: 0.55 },
+  { categoria: 'android', peso: 0.30 },
+  { categoria: 'eletro', peso: 0.15 }
+];
 
+/* O Meta Ads não expõe atribuição por categoria interna de produto nos
+   insights de conta — isso é uma divisão proporcional ilustrativa, tanto
+   no caminho mock quanto no real, reaproveitando o mesmo flag `demo` do
+   restante da resposta. */
+function dividirPorCategoria(resultadosTotal) {
+  var base = PESOS_CATEGORIA.map(function (c) {
+    return { categoria: c.categoria, resultados: Math.round(resultadosTotal * c.peso) };
+  });
+  var soma = base.reduce(function (s, c) { return s + c.resultados; }, 0);
+  base[0].resultados += resultadosTotal - soma; // corrige o arredondamento
+  return base;
+}
+
+function agregarSerie(serie) {
+  var gastoTotal = Number(serie.reduce(function (s, d) { return s + d.gasto; }, 0).toFixed(2));
+  var cliques = serie.reduce(function (s, d) { return s + d.cliques; }, 0);
+  var impressoes = serie.reduce(function (s, d) { return s + d.impressoes; }, 0);
   return {
-    demo: true,
-    periodo: periodo,
-    gastoTotal: base.gastoTotal,
-    cliques: base.cliques,
-    impressoes: base.impressoes,
-    ctr: Number(((base.cliques / base.impressoes) * 100).toFixed(2)),
-    cpc: Number((base.gastoTotal / base.cliques).toFixed(2)),
-    resultados: base.resultados
+    gastoTotal: gastoTotal,
+    cliques: cliques,
+    impressoes: impressoes,
+    ctr: impressoes ? Number(((cliques / impressoes) * 100).toFixed(2)) : 0,
+    cpc: cliques ? Number((gastoTotal / cliques).toFixed(2)) : 0
   };
+}
+
+/* PRNG determinístico (mesma semente = mesma série a cada chamada, pra
+   não ficar pulando de valor a cada reload) só pra dar uma variação
+   "orgânica" à série mock em vez de dias idênticos. */
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function gerarSerieDiariaMock(periodo) {
+  var dias = periodo === '30d' ? 30 : 7;
+  var rand = mulberry32(dias);
+  var hoje = new Date();
+  var serie = [];
+  for (var i = dias - 1; i >= 0; i--) {
+    var d = new Date(hoje);
+    d.setDate(d.getDate() - i);
+    var variacao = 0.75 + rand() * 0.5; // 0.75x-1.25x
+    var impressoes = Math.round(2350 * variacao);
+    var cliques = Math.round(impressoes * (0.018 + rand() * 0.006)); // ctr ~1.8%-2.4%, média ~2.07%
+    var gasto = Number((cliques * (1.20 + rand() * 0.20)).toFixed(2)); // cpc ~1.20-1.40
+    serie.push({ data: d.toISOString().slice(0, 10), gasto: gasto, cliques: cliques, impressoes: impressoes });
+  }
+  return serie;
+}
+
+function dadosMock(periodo) {
+  var serieDiaria = gerarSerieDiariaMock(periodo);
+  var agregados = agregarSerie(serieDiaria);
+  // ~6.75% dos cliques viram conversa iniciada — mesma proporção implícita
+  // nos números mock fixos anteriores (24/356 e 96/1420 ≈ 6.75%).
+  var resultados = Math.round(agregados.cliques * 0.0675);
+
+  return Object.assign(
+    { demo: true, periodo: periodo, resultados: resultados, serieDiaria: serieDiaria, categorias: dividirPorCategoria(resultados) },
+    agregados
+  );
 }
 
 function somarConversas(acoes) {
@@ -50,7 +107,7 @@ function somarConversas(acoes) {
 async function buscarMetaInsights(accountId, accessToken, periodo) {
   var datePreset = periodo === '30d' ? 'last_30d' : 'last_7d';
   var url = 'https://graph.facebook.com/' + META_GRAPH_VERSION + '/' + encodeURIComponent(accountId) +
-    '/insights?fields=spend,impressions,clicks,ctr,cpc,actions&date_preset=' + datePreset +
+    '/insights?fields=spend,impressions,clicks,actions,date_start&time_increment=1&date_preset=' + datePreset +
     '&access_token=' + encodeURIComponent(accessToken);
 
   var resp = await fetch(url);
@@ -59,18 +116,17 @@ async function buscarMetaInsights(accountId, accessToken, periodo) {
     throw new Error('meta_graph_api_error');
   }
 
-  var linha = (body.data && body.data[0]) || {};
+  var linhas = Array.isArray(body.data) ? body.data : [];
+  var serieDiaria = linhas.map(function (l) {
+    return { data: l.date_start, gasto: Number(l.spend || 0), cliques: Number(l.clicks || 0), impressoes: Number(l.impressions || 0) };
+  });
+  var agregados = agregarSerie(serieDiaria);
+  var resultados = linhas.reduce(function (soma, l) { return soma + somarConversas(l.actions); }, 0);
 
-  return {
-    demo: false,
-    periodo: periodo,
-    gastoTotal: Number(linha.spend || 0),
-    cliques: Number(linha.clicks || 0),
-    impressoes: Number(linha.impressions || 0),
-    ctr: Number(linha.ctr || 0),
-    cpc: Number(linha.cpc || 0),
-    resultados: somarConversas(linha.actions)
-  };
+  return Object.assign(
+    { demo: false, periodo: periodo, resultados: resultados, serieDiaria: serieDiaria, categorias: dividirPorCategoria(resultados) },
+    agregados
+  );
 }
 
 module.exports = async function handler(req, res) {

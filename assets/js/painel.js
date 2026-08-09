@@ -31,13 +31,19 @@
     aba: 'dashboard',
     produtos: [],
     filtro: 'todos',
+    busca: '',
+    visualizacao: 'grade',
+    selecionados: new Set(),
     editandoId: null,
-    excluindoId: null,
+    excluindoIds: null,
     fotoArquivo: null,
     fotoPreviewUrl: '',
     salvando: false,
     dashPeriodo: '7d',
-    dashPedidoId: 0
+    dashPedidoId: 0,
+    dashDados: null,
+    charts: { gasto: null, cliques: null, categorias: null },
+    isDesktop: false
   };
 
   var el = {};
@@ -47,14 +53,19 @@
       'pnl-boot', 'pnl-boot-error', 'pnl-login', 'pnl-painel',
       'pnl-login-form', 'pnl-login-error', 'pnl-email', 'pnl-senha', 'pnl-login-submit',
       'pnl-logout',
+      'pnl-sidebar', 'pnl-side-btn-dashboard', 'pnl-side-btn-produtos', 'pnl-sidebar-logout',
       'pnl-tab-dashboard', 'pnl-tab-produtos', 'pnl-tab-btn-dashboard', 'pnl-tab-btn-produtos',
-      'pnl-period', 'pnl-dash-demo', 'pnl-dash-error', 'pnl-dash-cards',
-      'pnl-summary', 'pnl-warning', 'pnl-filters', 'pnl-grid', 'pnl-empty', 'pnl-load-error',
+      'pnl-period', 'pnl-dash-demo', 'pnl-dash-error', 'pnl-dash-cards', 'pnl-dash-charts',
+      'pnl-chart-gasto', 'pnl-chart-cliques', 'pnl-chart-categorias',
+      'pnl-summary', 'pnl-warning', 'pnl-produtos-toolbar', 'pnl-filters', 'pnl-busca',
+      'pnl-bulk-bar', 'pnl-bulk-count', 'pnl-bulk-excluir', 'pnl-bulk-limpar',
+      'pnl-produtos-lista', 'pnl-grid', 'pnl-tabela', 'pnl-tabela-body', 'pnl-tabela-check-all',
+      'pnl-empty', 'pnl-load-error',
       'pnl-novo', 'pnl-modal-backdrop', 'pnl-modal-title', 'pnl-modal-close',
-      'pnl-form', 'pnl-form-error', 'pnl-foto', 'pnl-photo-preview', 'pnl-photo-caption',
+      'pnl-form', 'pnl-form-error', 'pnl-photo-field', 'pnl-foto', 'pnl-photo-preview', 'pnl-photo-caption',
       'pnl-nome', 'pnl-categoria', 'pnl-cor-select', 'pnl-cor-outra-field', 'pnl-cor-outra',
       'pnl-form-disponivel', 'pnl-form-destaque', 'pnl-form-submit',
-      'pnl-confirm-backdrop', 'pnl-confirm-text', 'pnl-confirm-cancel', 'pnl-confirm-delete',
+      'pnl-confirm-backdrop', 'pnl-confirm-title', 'pnl-confirm-text', 'pnl-confirm-cancel', 'pnl-confirm-delete',
       'pnl-toast'
     ].forEach(function (id) { el[id] = document.getElementById(id); });
   }
@@ -106,13 +117,24 @@
     state.aba = aba;
     el['pnl-tab-dashboard'].hidden = aba !== 'dashboard';
     el['pnl-tab-produtos'].hidden = aba !== 'produtos';
-    el['pnl-tab-btn-dashboard'].classList.toggle('is-active', aba === 'dashboard');
-    el['pnl-tab-btn-dashboard'].setAttribute('aria-selected', String(aba === 'dashboard'));
-    el['pnl-tab-btn-produtos'].classList.toggle('is-active', aba === 'produtos');
-    el['pnl-tab-btn-produtos'].setAttribute('aria-selected', String(aba === 'produtos'));
 
-    if (aba === 'dashboard') carregarDashboard();
-    else carregarProdutos();
+    [
+      [el['pnl-tab-btn-dashboard'], aba === 'dashboard'],
+      [el['pnl-tab-btn-produtos'], aba === 'produtos'],
+      [el['pnl-side-btn-dashboard'], aba === 'dashboard'],
+      [el['pnl-side-btn-produtos'], aba === 'produtos']
+    ].forEach(function (par) {
+      par[0].classList.toggle('is-active', par[1]);
+      par[0].setAttribute('aria-selected', String(par[1]));
+    });
+
+    if (aba === 'dashboard') {
+      carregarDashboard();
+    } else {
+      state.selecionados.clear();
+      atualizarBarraSelecao();
+      carregarProdutos();
+    }
   }
 
   /* — Dashboard (métricas de anúncios) ---------------------------------------- */
@@ -135,6 +157,83 @@
     }).join('');
   }
 
+  /* — Gráficos (Chart.js, só existem no layout desktop) ----------------------- */
+
+  function destruirGraficos() {
+    Object.keys(state.charts).forEach(function (chave) {
+      if (state.charts[chave]) { state.charts[chave].destroy(); state.charts[chave] = null; }
+    });
+  }
+
+  function renderCharts(dados) {
+    if (!state.isDesktop || state.aba !== 'dashboard' || !dados) return;
+    destruirGraficos();
+
+    var rotulos = dados.serieDiaria.map(function (d) { return d.data.slice(5); });
+
+    state.charts.gasto = new Chart(el['pnl-chart-gasto'].getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: rotulos,
+        datasets: [{
+          label: 'Gasto (R$)',
+          data: dados.serieDiaria.map(function (d) { return d.gasto; }),
+          borderColor: '#d8b34a',
+          backgroundColor: 'rgba(216,179,74,.15)',
+          fill: true,
+          tension: .35,
+          pointRadius: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { color: '#8a8f9c' }, grid: { color: 'rgba(255,255,255,.06)' } },
+          x: { ticks: { color: '#8a8f9c' }, grid: { display: false } }
+        }
+      }
+    });
+
+    state.charts.cliques = new Chart(el['pnl-chart-cliques'].getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: rotulos,
+        datasets: [
+          { label: 'Cliques', data: dados.serieDiaria.map(function (d) { return d.cliques; }), backgroundColor: '#ffd400' },
+          { label: 'Impressões', data: dados.serieDiaria.map(function (d) { return d.impressoes; }), backgroundColor: '#3a3d4a' }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#c8ccd6' } } },
+        scales: {
+          y: { beginAtZero: true, ticks: { color: '#8a8f9c' }, grid: { color: 'rgba(255,255,255,.06)' } },
+          x: { ticks: { color: '#8a8f9c' }, grid: { display: false } }
+        }
+      }
+    });
+
+    var categorias = dados.categorias || [];
+    state.charts.categorias = new Chart(el['pnl-chart-categorias'].getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: categorias.map(function (c) { return categoriaRotulo(c.categoria); }),
+        datasets: [{
+          data: categorias.map(function (c) { return c.resultados; }),
+          backgroundColor: ['#d8b34a', '#ffd400', '#5a5f70']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { color: '#c8ccd6' } } }
+      }
+    });
+  }
+
   async function carregarDashboard() {
     /* Guarda por número de pedido: cliques rápidos no seletor de período
        podem fazer duas chamadas resolverem fora de ordem — só a mais
@@ -155,6 +254,8 @@
       var dados = await resp.json();
       if (meuPedido !== state.dashPedidoId) return;
       renderDashboard(dados);
+      state.dashDados = dados;
+      renderCharts(dados);
     } catch (error) {
       if (meuPedido !== state.dashPedidoId) return;
       el['pnl-dash-error'].hidden = false;
@@ -184,6 +285,7 @@
     renderFiltros();
     renderResumo();
     renderGrid();
+    renderTabela();
   }
 
   function renderResumo() {
@@ -210,13 +312,40 @@
   }
 
   function produtosVisiveis() {
-    return state.filtro === 'todos' ? state.produtos : state.produtos.filter(function (p) { return p.categoria === state.filtro; });
+    var lista = state.filtro === 'todos' ? state.produtos : state.produtos.filter(function (p) { return p.categoria === state.filtro; });
+    var termo = state.busca.trim().toLowerCase();
+    if (!termo) return lista;
+    return lista.filter(function (p) { return p.nome_modelo.toLowerCase().indexOf(termo) !== -1; });
+  }
+
+  /* Ícones e sub-componentes compartilhados entre o card (grade) e a
+     linha da tabela — mesmo visual nos dois modos de visualização. */
+  var ICONE_EDITAR = '<svg viewBox="0 0 256 256" fill="currentColor" width="17" height="17" aria-hidden="true"><path d="m227.31 73.37-44.68-44.69a16 16 0 0 0-22.63 0L36.69 152A15.86 15.86 0 0 0 32 163.31V208a16 16 0 0 0 16 16h44.69a15.86 15.86 0 0 0 11.31-4.69L227.31 96a16 16 0 0 0 0-22.63ZM92.69 208H48v-44.69l88-88L180.69 120ZM192 108.68 147.31 64l24-24L216 84.68Z"></path></svg>';
+  var ICONE_DUPLICAR = '<svg viewBox="0 0 256 256" fill="currentColor" width="17" height="17" aria-hidden="true"><path d="M216 32H88a8 8 0 0 0-8 8v40H40a8 8 0 0 0-8 8v128a8 8 0 0 0 8 8h128a8 8 0 0 0 8-8v-40h40a8 8 0 0 0 8-8V40a8 8 0 0 0-8-8Zm-56 176H48V96h112Zm48-48h-32V88a8 8 0 0 0-8-8H96V48h112Z"></path></svg>';
+  var ICONE_EXCLUIR = '<svg viewBox="0 0 256 256" fill="currentColor" width="17" height="17" aria-hidden="true"><path d="M216 48h-40v-8a24 24 0 0 0-24-24h-48a24 24 0 0 0-24 24v8H40a8 8 0 0 0 0 16h8v144a16 16 0 0 0 16 16h128a16 16 0 0 0 16-16V64h8a8 8 0 0 0 0-16ZM96 40a8 8 0 0 1 8-8h48a8 8 0 0 1 8 8v8H96Zm96 168H64V64h128Zm-80-104v64a8 8 0 0 1-16 0v-64a8 8 0 0 1 16 0Zm48 0v64a8 8 0 0 1-16 0v-64a8 8 0 0 1 16 0Z"></path></svg>';
+
+  function trilhoHtml(on) {
+    return '<span class="pnl-toggle' + (on ? ' is-on' : '') + '"><span class="pnl-toggle__thumb"></span></span>';
+  }
+
+  function estrelaHtml(on) {
+    return '<svg class="' + (on ? 'is-on' : '') + '" viewBox="0 0 256 256" width="18" height="18" aria-hidden="true"><path d="M239.2 97.29a16 16 0 0 0-13.81-11L166 81.17 142.72 25.81a15.95 15.95 0 0 0-29.44 0L90 81.17 30.61 86.32a16 16 0 0 0-9.11 28.06l45 39.29-13.42 58.6a16 16 0 0 0 23.84 17.34L128 199.35l51.08 30.26a16 16 0 0 0 23.84-17.34l-13.42-58.6 45-39.29a16 16 0 0 0 4.7-17.09Z"></path></svg>';
+  }
+
+  function botoesAcaoHtml(p) {
+    return (
+      '<button type="button" class="pnl-icon-btn" data-action="editar" aria-label="Editar" title="Editar">' + ICONE_EDITAR + '</button>' +
+      '<button type="button" class="pnl-icon-btn" data-action="duplicar" aria-label="Duplicar" title="Duplicar">' + ICONE_DUPLICAR + '</button>' +
+      '<button type="button" class="pnl-icon-btn pnl-icon-btn--danger" data-action="excluir" aria-label="Excluir" title="Excluir">' + ICONE_EXCLUIR + '</button>'
+    );
   }
 
   function cardTemplate(p) {
     var foto = p.imagem_url || PLACEHOLDER_FOTO;
+    var marcado = state.selecionados.has(p.id);
     return (
       '<article class="pnl-card" data-id="' + p.id + '">' +
+        '<input type="checkbox" class="pnl-select-check" data-id="' + p.id + '"' + (marcado ? ' checked' : '') + ' aria-label="Selecionar ' + escapeHtml(p.nome_modelo) + '">' +
         '<div class="pnl-card__photo-wrap">' +
           '<span class="pnl-card__photo lighten" style="background-image:url(\'' + escapeHtml(foto) + '\')"></span>' +
           (p.destaque ? '<span class="pnl-card__badge">Destaque</span>' : '') +
@@ -230,30 +359,37 @@
                 '<span class="pnl-card__color">' + escapeHtml(p.cor) + '</span>' +
               '</div>' +
             '</div>' +
-            '<div class="pnl-card__actions">' +
-              '<button type="button" class="pnl-icon-btn" data-action="editar" aria-label="Editar" title="Editar">' +
-                '<svg viewBox="0 0 256 256" fill="currentColor" width="17" height="17" aria-hidden="true"><path d="m227.31 73.37-44.68-44.69a16 16 0 0 0-22.63 0L36.69 152A15.86 15.86 0 0 0 32 163.31V208a16 16 0 0 0 16 16h44.69a15.86 15.86 0 0 0 11.31-4.69L227.31 96a16 16 0 0 0 0-22.63ZM92.69 208H48v-44.69l88-88L180.69 120ZM192 108.68 147.31 64l24-24L216 84.68Z"></path></svg>' +
-              '</button>' +
-              '<button type="button" class="pnl-icon-btn" data-action="duplicar" aria-label="Duplicar" title="Duplicar">' +
-                '<svg viewBox="0 0 256 256" fill="currentColor" width="17" height="17" aria-hidden="true"><path d="M216 32H88a8 8 0 0 0-8 8v40H40a8 8 0 0 0-8 8v128a8 8 0 0 0 8 8h128a8 8 0 0 0 8-8v-40h40a8 8 0 0 0 8-8V40a8 8 0 0 0-8-8Zm-56 176H48V96h112Zm48-48h-32V88a8 8 0 0 0-8-8H96V48h112Z"></path></svg>' +
-              '</button>' +
-              '<button type="button" class="pnl-icon-btn pnl-icon-btn--danger" data-action="excluir" aria-label="Excluir" title="Excluir">' +
-                '<svg viewBox="0 0 256 256" fill="currentColor" width="17" height="17" aria-hidden="true"><path d="M216 48h-40v-8a24 24 0 0 0-24-24h-48a24 24 0 0 0-24 24v8H40a8 8 0 0 0 0 16h8v144a16 16 0 0 0 16 16h128a16 16 0 0 0 16-16V64h8a8 8 0 0 0 0-16ZM96 40a8 8 0 0 1 8-8h48a8 8 0 0 1 8 8v8H96Zm96 168H64V64h128Zm-80-104v64a8 8 0 0 1-16 0v-64a8 8 0 0 1 16 0Zm48 0v64a8 8 0 0 1-16 0v-64a8 8 0 0 1 16 0Z"></path></svg>' +
-              '</button>' +
-            '</div>' +
+            '<div class="pnl-card__actions">' + botoesAcaoHtml(p) + '</div>' +
           '</div>' +
           '<div class="pnl-card__toggles">' +
             '<button type="button" class="pnl-toggle-btn" data-action="toggle-disponivel">' +
-              '<span class="pnl-toggle' + (p.disponivel ? ' is-on' : '') + '"><span class="pnl-toggle__thumb"></span></span>' +
+              trilhoHtml(p.disponivel) +
               '<span class="pnl-toggle-label' + (p.disponivel ? ' is-on' : '') + '">Disponível</span>' +
             '</button>' +
             '<button type="button" class="pnl-star-btn" data-action="toggle-destaque" aria-label="Destaque">' +
-              '<svg class="' + (p.destaque ? 'is-on' : '') + '" viewBox="0 0 256 256" width="18" height="18" aria-hidden="true"><path d="M239.2 97.29a16 16 0 0 0-13.81-11L166 81.17 142.72 25.81a15.95 15.95 0 0 0-29.44 0L90 81.17 30.61 86.32a16 16 0 0 0-9.11 28.06l45 39.29-13.42 58.6a16 16 0 0 0 23.84 17.34L128 199.35l51.08 30.26a16 16 0 0 0 23.84-17.34l-13.42-58.6 45-39.29a16 16 0 0 0 4.7-17.09Z"></path></svg>' +
+              estrelaHtml(p.destaque) +
               '<span class="pnl-toggle-label pnl-toggle-label--gold' + (p.destaque ? ' is-on' : '') + '">Destaque</span>' +
             '</button>' +
           '</div>' +
         '</div>' +
       '</article>'
+    );
+  }
+
+  function linhaTabela(p) {
+    var foto = p.imagem_url || PLACEHOLDER_FOTO;
+    var marcado = state.selecionados.has(p.id);
+    return (
+      '<tr data-id="' + p.id + '">' +
+        '<td><input type="checkbox" class="pnl-select-check" data-id="' + p.id + '"' + (marcado ? ' checked' : '') + ' aria-label="Selecionar ' + escapeHtml(p.nome_modelo) + '"></td>' +
+        '<td><img class="pnl-tabela__thumb" src="' + escapeHtml(foto) + '" alt=""></td>' +
+        '<td class="pnl-tabela__nome">' + escapeHtml(p.nome_modelo) + (p.destaque ? ' ★' : '') + '</td>' +
+        '<td>' + escapeHtml(categoriaRotulo(p.categoria)) + '</td>' +
+        '<td>' + escapeHtml(p.cor) + '</td>' +
+        '<td><button type="button" class="pnl-toggle-btn" data-action="toggle-disponivel">' + trilhoHtml(p.disponivel) + '</button></td>' +
+        '<td><button type="button" class="pnl-star-btn" data-action="toggle-destaque" aria-label="Destaque">' + estrelaHtml(p.destaque) + '</button></td>' +
+        '<td class="pnl-tabela__acoes">' + botoesAcaoHtml(p) + '</td>' +
+      '</tr>'
     );
   }
 
@@ -263,12 +399,36 @@
     el['pnl-empty'].hidden = visiveis.length !== 0;
   }
 
+  function renderTabela() {
+    el['pnl-tabela-body'].innerHTML = produtosVisiveis().map(linhaTabela).join('');
+  }
+
+  /* — Visualização Grade/Tabela (só existe no layout desktop) ----------------- */
+
+  function aplicarVisualizacao() {
+    var tabela = state.isDesktop && state.visualizacao === 'tabela';
+    el['pnl-grid'].hidden = tabela;
+    el['pnl-tabela'].hidden = !tabela;
+  }
+
+  function forcarVisualizacaoGrade() {
+    el['pnl-grid'].hidden = false;
+    el['pnl-tabela'].hidden = true;
+  }
+
   function encontrarProduto(id) {
     return state.produtos.filter(function (p) { return String(p.id) === String(id); })[0];
   }
 
   function setupGridDelegation() {
-    document.getElementById('pnl-grid').addEventListener('click', function (ev) {
+    el['pnl-produtos-lista'].addEventListener('click', function (ev) {
+      var check = ev.target.closest('.pnl-select-check');
+      if (check) {
+        if (check.checked) state.selecionados.add(check.dataset.id);
+        else state.selecionados.delete(check.dataset.id);
+        atualizarBarraSelecao();
+        return;
+      }
       var btn = ev.target.closest('[data-action]');
       if (!btn) return;
       var card = ev.target.closest('[data-id]');
@@ -280,6 +440,16 @@
       else if (action === 'excluir') abrirConfirm(produto);
       else if (action === 'toggle-disponivel') alternarCampo(produto, 'disponivel');
       else if (action === 'toggle-destaque') alternarCampo(produto, 'destaque');
+    });
+
+    el['pnl-tabela-check-all'].addEventListener('change', function (ev) {
+      var lista = produtosVisiveis();
+      lista.forEach(function (p) {
+        if (ev.target.checked) state.selecionados.add(p.id);
+        else state.selecionados.delete(p.id);
+      });
+      render();
+      atualizarBarraSelecao();
     });
   }
 
@@ -306,6 +476,40 @@
     } finally {
       delete togglesEmAndamento[chave];
     }
+  }
+
+  /* — Seleção em lote (só existe no layout desktop) ---------------------------- */
+
+  var ACOES_LOTE = {
+    'disponivel-on': ['disponivel', true],
+    'disponivel-off': ['disponivel', false],
+    'destaque-on': ['destaque', true],
+    'destaque-off': ['destaque', false]
+  };
+
+  function atualizarBarraSelecao() {
+    var n = state.selecionados.size;
+    el['pnl-bulk-bar'].hidden = n === 0;
+    el['pnl-bulk-count'].textContent = n === 1 ? '1 selecionado' : n + ' selecionados';
+  }
+
+  async function aplicarAcaoLote(chaveAcao) {
+    var par = ACOES_LOTE[chaveAcao];
+    if (!par) return;
+    var ids = Array.from(state.selecionados);
+    if (!ids.length) return;
+
+    var payload = {};
+    payload[par[0]] = par[1];
+    var res = await sb.from('produtos').update(payload).in('id', ids);
+    if (res.error) {
+      showToast('Não foi possível atualizar em lote. Tente novamente.');
+      return;
+    }
+    state.selecionados.clear();
+    atualizarBarraSelecao();
+    carregarProdutos();
+    showToast('Produtos atualizados.', 'sucesso');
   }
 
   /* — Modal adicionar/editar/duplicar --------------------------------------- */
@@ -358,11 +562,21 @@
   function atualizarPreviewFoto() {
     if (state.fotoPreviewUrl) {
       el['pnl-photo-preview'].style.backgroundImage = "url('" + state.fotoPreviewUrl + "')";
-      el['pnl-photo-caption'].textContent = 'Toque para trocar a imagem';
+      el['pnl-photo-caption'].textContent = 'Toque para trocar a imagem, ou arraste uma foto aqui';
     } else {
       el['pnl-photo-preview'].style.backgroundImage = 'none';
-      el['pnl-photo-caption'].textContent = 'Toque para escolher do celular';
+      el['pnl-photo-caption'].textContent = 'Toque para escolher, ou arraste uma foto aqui';
     }
+  }
+
+  /* Usada tanto pelo input de arquivo tradicional quanto pelo drop de
+     arrastar-e-soltar — mesma lógica, duas formas de disparar. */
+  function usarArquivoFoto(file) {
+    if (!file) return;
+    revogarPreviewSeNecessario();
+    state.fotoArquivo = file;
+    state.fotoPreviewUrl = URL.createObjectURL(file);
+    atualizarPreviewFoto();
   }
 
   function slugify(nome) {
@@ -430,32 +644,40 @@
     }
   }
 
-  /* — Confirmação de exclusão ------------------------------------------------ */
+  /* — Confirmação de exclusão (aceita um produto único ou uma lista, pra
+     servir tanto o botão de excluir do card/linha quanto o "Excluir
+     selecionados" da barra de ações em lote) ------------------------------- */
 
-  function abrirConfirm(produto) {
-    state.excluindoId = produto.id;
-    el['pnl-confirm-text'].textContent = '"' + produto.nome_modelo + '" sai da lista e deixa de aparecer no site.';
+  function abrirConfirm(alvo) {
+    var lista = Array.isArray(alvo) ? alvo : [alvo];
+    state.excluindoIds = lista.map(function (p) { return p.id; });
+    el['pnl-confirm-title'].textContent = lista.length > 1 ? 'Excluir ' + lista.length + ' produtos?' : 'Excluir produto?';
+    el['pnl-confirm-text'].textContent = lista.length > 1
+      ? lista.length + ' produtos selecionados saem da lista e deixam de aparecer no site.'
+      : '"' + lista[0].nome_modelo + '" sai da lista e deixa de aparecer no site.';
     el['pnl-confirm-backdrop'].hidden = false;
   }
 
   function fecharConfirm() {
-    state.excluindoId = null;
+    state.excluindoIds = null;
     el['pnl-confirm-backdrop'].hidden = true;
   }
 
   async function confirmarExclusao() {
-    var id = state.excluindoId;
-    if (!id) return;
+    var ids = state.excluindoIds;
+    if (!ids || !ids.length) return;
     el['pnl-confirm-delete'].disabled = true;
-    var res = await sb.from('produtos').delete().eq('id', id);
+    var res = await sb.from('produtos').delete().in('id', ids);
     el['pnl-confirm-delete'].disabled = false;
     if (res.error) {
       showToast('Não foi possível excluir. Tente novamente.');
       return;
     }
+    ids.forEach(function (id) { state.selecionados.delete(id); });
     fecharConfirm();
+    atualizarBarraSelecao();
     carregarProdutos();
-    showToast('Produto excluído.', 'sucesso');
+    showToast(ids.length > 1 ? 'Produtos excluídos.' : 'Produto excluído.', 'sucesso');
   }
 
   /* — Eventos ----------------------------------------------------------------- */
@@ -482,6 +704,9 @@
 
     el['pnl-tab-btn-dashboard'].addEventListener('click', function () { trocarAba('dashboard'); });
     el['pnl-tab-btn-produtos'].addEventListener('click', function () { trocarAba('produtos'); });
+    el['pnl-side-btn-dashboard'].addEventListener('click', function () { trocarAba('dashboard'); });
+    el['pnl-side-btn-produtos'].addEventListener('click', function () { trocarAba('produtos'); });
+    el['pnl-sidebar-logout'].addEventListener('click', function () { sb.auth.signOut(); });
 
     el['pnl-period'].addEventListener('click', function (ev) {
       var btn = ev.target.closest('[data-period]');
@@ -500,6 +725,39 @@
       render();
     });
 
+    var buscaTimer;
+    el['pnl-busca'].addEventListener('input', function (ev) {
+      window.clearTimeout(buscaTimer);
+      buscaTimer = window.setTimeout(function () {
+        state.busca = ev.target.value;
+        render();
+      }, 150);
+    });
+
+    document.querySelectorAll('.pnl-view-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        state.visualizacao = btn.dataset.view;
+        document.querySelectorAll('.pnl-view-btn').forEach(function (b) {
+          b.classList.toggle('is-active', b === btn);
+        });
+        aplicarVisualizacao();
+      });
+    });
+
+    el['pnl-bulk-bar'].addEventListener('click', function (ev) {
+      var bulkBtn = ev.target.closest('[data-bulk]');
+      if (bulkBtn) { aplicarAcaoLote(bulkBtn.dataset.bulk); return; }
+      if (ev.target === el['pnl-bulk-limpar']) {
+        state.selecionados.clear();
+        render();
+        atualizarBarraSelecao();
+      }
+    });
+    el['pnl-bulk-excluir'].addEventListener('click', function () {
+      var produtos = Array.from(state.selecionados).map(encontrarProduto).filter(Boolean);
+      if (produtos.length) abrirConfirm(produtos);
+    });
+
     setupGridDelegation();
 
     el['pnl-novo'].addEventListener('click', function () { abrirModal(null, false); });
@@ -514,11 +772,27 @@
 
     el['pnl-foto'].addEventListener('change', function (ev) {
       var file = ev.target.files && ev.target.files[0];
-      if (!file) return;
-      revogarPreviewSeNecessario();
-      state.fotoArquivo = file;
-      state.fotoPreviewUrl = URL.createObjectURL(file);
-      atualizarPreviewFoto();
+      if (file) usarArquivoFoto(file);
+    });
+
+    var arrastesAtivos = 0;
+    el['pnl-photo-field'].addEventListener('dragenter', function (ev) {
+      ev.preventDefault();
+      arrastesAtivos++;
+      el['pnl-photo-field'].classList.add('is-dragover');
+    });
+    el['pnl-photo-field'].addEventListener('dragover', function (ev) { ev.preventDefault(); });
+    el['pnl-photo-field'].addEventListener('dragleave', function (ev) {
+      ev.preventDefault();
+      arrastesAtivos = Math.max(0, arrastesAtivos - 1);
+      if (arrastesAtivos === 0) el['pnl-photo-field'].classList.remove('is-dragover');
+    });
+    el['pnl-photo-field'].addEventListener('drop', function (ev) {
+      ev.preventDefault();
+      arrastesAtivos = 0;
+      el['pnl-photo-field'].classList.remove('is-dragover');
+      var file = ev.dataTransfer.files && ev.dataTransfer.files[0];
+      if (file) usarArquivoFoto(file);
     });
 
     el['pnl-form-disponivel'].addEventListener('click', function () {
@@ -556,6 +830,23 @@
 
     sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     setupEventos();
+
+    /* Layout desktop (≥1024px): sidebar, gráficos, tabela, etc. Ao cruzar
+       o breakpoint pra baixo, destrói os gráficos e força a visualização
+       em grade (a rede de segurança do CSS também cobre isso, mas aqui
+       evita manter instâncias do Chart.js vivas sem necessidade). */
+    var mqlDesktop = window.matchMedia('(min-width: 1024px)');
+    state.isDesktop = mqlDesktop.matches;
+    mqlDesktop.addEventListener('change', function (ev) {
+      state.isDesktop = ev.matches;
+      if (!ev.matches) {
+        destruirGraficos();
+        forcarVisualizacaoGrade();
+      } else {
+        aplicarVisualizacao();
+        if (state.aba === 'dashboard' && state.dashDados) renderCharts(state.dashDados);
+      }
+    });
 
     /* onAuthStateChange dispara imediatamente com a sessão atual (evento
        INITIAL_SESSION), então não precisa de um getSession() em paralelo.
