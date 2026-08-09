@@ -36,7 +36,8 @@
     fotoArquivo: null,
     fotoPreviewUrl: '',
     salvando: false,
-    dashPeriodo: '7d'
+    dashPeriodo: '7d',
+    dashPedidoId: 0
   };
 
   var el = {};
@@ -135,6 +136,10 @@
   }
 
   async function carregarDashboard() {
+    /* Guarda por número de pedido: cliques rápidos no seletor de período
+       podem fazer duas chamadas resolverem fora de ordem — só a mais
+       recente pode atualizar a tela. */
+    var meuPedido = ++state.dashPedidoId;
     el['pnl-dash-error'].hidden = true;
     el['pnl-dash-cards'].setAttribute('aria-busy', 'true');
     try {
@@ -147,12 +152,15 @@
       });
       if (!resp.ok) throw new Error('falha ao consultar /api/ads-metrics');
 
-      renderDashboard(await resp.json());
+      var dados = await resp.json();
+      if (meuPedido !== state.dashPedidoId) return;
+      renderDashboard(dados);
     } catch (error) {
+      if (meuPedido !== state.dashPedidoId) return;
       el['pnl-dash-error'].hidden = false;
       el['pnl-dash-error'].textContent = 'Não foi possível carregar as métricas de anúncios.';
     } finally {
-      el['pnl-dash-cards'].removeAttribute('aria-busy');
+      if (meuPedido === state.dashPedidoId) el['pnl-dash-cards'].removeAttribute('aria-busy');
     }
   }
 
@@ -275,15 +283,28 @@
     });
   }
 
+  /* Chave produtoId:campo em voo — um segundo clique no mesmo toggle
+     enquanto o primeiro update ainda não voltou vira um no-op, evitando
+     duas requisições que podem resolver fora de ordem. */
+  var togglesEmAndamento = {};
+
   async function alternarCampo(produto, campo) {
+    var chave = produto.id + ':' + campo;
+    if (togglesEmAndamento[chave]) return;
+    togglesEmAndamento[chave] = true;
+
     var anterior = produto[campo];
     produto[campo] = !anterior;
     render();
-    var res = await sb.from('produtos').update({ [campo]: produto[campo] }).eq('id', produto.id);
-    if (res.error) {
-      produto[campo] = anterior;
-      render();
-      showToast('Não foi possível atualizar. Tente novamente.');
+    try {
+      var res = await sb.from('produtos').update({ [campo]: produto[campo] }).eq('id', produto.id);
+      if (res.error) {
+        produto[campo] = anterior;
+        render();
+        showToast('Não foi possível atualizar. Tente novamente.');
+      }
+    } finally {
+      delete togglesEmAndamento[chave];
     }
   }
 
@@ -320,11 +341,18 @@
   }
 
   function fecharModal() {
+    revogarPreviewSeNecessario();
     el['pnl-modal-backdrop'].hidden = true;
     state.editandoId = null;
     state.fotoArquivo = null;
     state.fotoPreviewUrl = '';
     el['pnl-foto'].value = '';
+  }
+
+  function revogarPreviewSeNecessario() {
+    if (state.fotoPreviewUrl && state.fotoPreviewUrl.indexOf('blob:') === 0) {
+      URL.revokeObjectURL(state.fotoPreviewUrl);
+    }
   }
 
   function atualizarPreviewFoto() {
@@ -487,6 +515,7 @@
     el['pnl-foto'].addEventListener('change', function (ev) {
       var file = ev.target.files && ev.target.files[0];
       if (!file) return;
+      revogarPreviewSeNecessario();
       state.fotoArquivo = file;
       state.fotoPreviewUrl = URL.createObjectURL(file);
       atualizarPreviewFoto();
