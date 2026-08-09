@@ -17,7 +17,9 @@
 <body>
 
 <!-- Carregando sessão: evita "piscar" login/painel antes do Supabase responder -->
-<div id="pnl-boot" class="pnl-boot" aria-hidden="true"></div>
+<div id="pnl-boot" class="pnl-boot" aria-hidden="true">
+  <p id="pnl-boot-error" class="pnl-boot-error" role="alert" hidden></p>
+</div>
 
 <!-- ═══ Login ═══ -->
 <div id="pnl-login" class="pnl-login" hidden>

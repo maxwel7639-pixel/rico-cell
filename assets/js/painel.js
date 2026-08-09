@@ -16,7 +16,7 @@
     { valor: 'eletro', rotulo: 'Eletro' }
   ];
 
-  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+  var sb;
 
   var CARDS_DASH = [
     { chave: 'gastoTotal', rotulo: 'Gasto total', formato: 'moeda' },
@@ -43,7 +43,7 @@
 
   function cacheEls() {
     [
-      'pnl-boot', 'pnl-login', 'pnl-painel',
+      'pnl-boot', 'pnl-boot-error', 'pnl-login', 'pnl-painel',
       'pnl-login-form', 'pnl-login-error', 'pnl-email', 'pnl-senha', 'pnl-login-submit',
       'pnl-logout',
       'pnl-tab-dashboard', 'pnl-tab-produtos', 'pnl-tab-btn-dashboard', 'pnl-tab-btn-produtos',
@@ -69,8 +69,9 @@
     return c ? c.rotulo : valor;
   }
 
-  function showToast(mensagem) {
+  function showToast(mensagem, tipo) {
     el['pnl-toast'].textContent = mensagem;
+    el['pnl-toast'].classList.toggle('pnl-toast--sucesso', tipo === 'sucesso');
     el['pnl-toast'].hidden = false;
     window.clearTimeout(showToast._t);
     showToast._t = window.setTimeout(function () { el['pnl-toast'].hidden = true; }, 4000);
@@ -393,7 +394,7 @@
       var eraEdicao = !!state.editandoId;
       fecharModal();
       carregarProdutos();
-      showToast(eraEdicao ? 'Produto atualizado.' : 'Produto adicionado.');
+      showToast(eraEdicao ? 'Produto atualizado.' : 'Produto adicionado.', 'sucesso');
     } catch (error) {
       setSalvando(false);
       el['pnl-form-error'].hidden = false;
@@ -426,7 +427,7 @@
     }
     fecharConfirm();
     carregarProdutos();
-    showToast('Produto excluído.');
+    showToast('Produto excluído.', 'sucesso');
   }
 
   /* — Eventos ----------------------------------------------------------------- */
@@ -517,11 +518,23 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     cacheEls();
+
+    if (!window.supabase) {
+      el['pnl-boot-error'].hidden = false;
+      el['pnl-boot-error'].textContent = 'Não foi possível carregar o painel (a conexão com o Supabase não respondeu). Verifique sua internet e recarregue a página.';
+      return;
+    }
+
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     setupEventos();
 
     /* onAuthStateChange dispara imediatamente com a sessão atual (evento
-       INITIAL_SESSION), então não precisa de um getSession() em paralelo. */
-    sb.auth.onAuthStateChange(function (_event, session) {
+       INITIAL_SESSION), então não precisa de um getSession() em paralelo.
+       TOKEN_REFRESHED/USER_UPDATED só renovam o token por baixo dos panos
+       (o supabase-js já cuida disso sozinho) — reagir a eles recarregaria
+       a aba atual do zero sem o usuário ter feito nada. */
+    sb.auth.onAuthStateChange(function (event, session) {
+      if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
       if (session) mostrarPainel(); else mostrarLogin();
     });
   });

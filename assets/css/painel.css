@@ -17,6 +17,19 @@
   background: var(--rc-bg);
 }
 
+.pnl-boot-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+  color: #ff9c9c;
+  font-size: 14px;
+}
+
 /* — Login ------------------------------------------------------------- */
 
 .pnl-login {
@@ -764,6 +777,10 @@
   color: #f3f5fe;
   font-size: 13px;
   box-shadow: 0 14px 34px rgba(0, 0, 0, .5);
+}
+.pnl-toast--sucesso {
+  border-color: rgba(216, 179, 74, .4);
+  color: var(--rc-gold-soft);
 }
 
 @media (prefers-reduced-motion: reduce) {
