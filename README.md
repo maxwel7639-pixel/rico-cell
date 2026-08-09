@@ -15,9 +15,10 @@ assets/css/styles.css   tokens do design system "Nocturne" + camada de marca
 assets/js/main.js       revelação ao rolar, tilt 3D, seletor de cor, carrossel
 assets/img/             fotos da loja (as mesmas do projeto de design)
 
-painel/index.html       rota /painel — gestão de produtos (login + CRUD)
+painel/index.html       rota /painel — abas Dashboard e Produtos
 assets/css/painel.css   estilos da rota /painel
-assets/js/painel.js     client Supabase, auth e CRUD da tabela produtos
+assets/js/painel.js     client Supabase, auth, CRUD de produtos e dashboard
+api/ads-metrics.js      Vercel Function — métricas de anúncios (Meta Ads)
 ```
 
 ## Rodar localmente
@@ -30,12 +31,14 @@ npx serve .          # ou: python3 -m http.server 8000
 
 Abrir `http://localhost:3000` (ou `:8000`).
 
-## Painel de produtos (`/painel`)
+## Painel (`/painel`)
 
-Área restrita para gerenciar os produtos que aparecem no site — cadastrar,
-editar, duplicar, excluir, e alternar **Disponível** / **Destaque**. Assim
-como o resto do site, é HTML/CSS/JS puro: `supabase-js` é carregado via CDN
-(`unpkg.com/@supabase/supabase-js@2`), sem build e sem passo de instalação.
+Área restrita com duas abas: **Dashboard** (métricas de anúncios, aba padrão
+ao entrar) e **Produtos** (cadastrar, editar, duplicar, excluir, alternar
+**Disponível** / **Destaque**). O front-end é HTML/CSS/JS puro — `supabase-js`
+é carregado via CDN (`unpkg.com/@supabase/supabase-js@2`), sem build e sem
+passo de instalação. A única peça com backend é a função serverless do
+dashboard (abaixo).
 
 - **Projeto Supabase:** `rico-cell` (`bpncnintvpmpqfdtykms`, região `sa-east-1`).
 - **Auth:** e-mail + senha via Supabase Auth. **Não existe cadastro público** —
@@ -55,6 +58,30 @@ como o resto do site, é HTML/CSS/JS puro: `supabase-js` é carregado via CDN
 
 Ao publicar em Vercel/Netlify, a pasta `painel/` com `index.html` já responde
 em `/painel/`; no GitHub Pages pode ser necessário o `/` final na URL.
+
+## Dashboard de anúncios (Meta Ads)
+
+A aba **Dashboard** mostra Gasto total, Cliques, Impressões, CTR, CPC e
+Resultados (conversas iniciadas), com seletor de período (7 ou 30 dias). Os
+números vêm de `GET /api/ads-metrics?period=7d|30d`, uma Vercel Function
+(`api/ads-metrics.js`, Node.js puro, sem dependências) que:
+
+1. Exige um usuário logado — valida o token da sessão do Supabase Auth
+   (enviado pelo painel no header `Authorization: Bearer ...`) chamando
+   `/auth/v1/user` no próprio Supabase. Sem token válido, responde `401`.
+2. Lê as variáveis de ambiente `META_ADS_ACCOUNT_ID` e `META_ADS_ACCESS_TOKEN`.
+   **Configure as duas na Vercel em Settings → Environment Variables** —
+   nunca no código. `META_ADS_ACCOUNT_ID` é o ID da conta de anúncios com o
+   prefixo `act_` (ex.: `act_1234567890`).
+3. **Enquanto qualquer uma das duas não existir**, o painel funciona em
+   **modo demonstração**: a API devolve números fictícios (mas plausíveis)
+   com `demo: true`, e o dashboard mostra o aviso "Mostrando dados de
+   demonstração — conecte a conta de anúncios pra ver os números reais".
+4. Com as duas configuradas, a API consulta a Graph API do Meta
+   (`/{ad_account_id}/insights`) e devolve os números reais com `demo: false`.
+   Se a consulta ao Meta falhar (token expirado, permissão faltando, etc.),
+   a API responde `502` — o token de acesso nunca é exposto na resposta nem
+   em log.
 
 ## Publicar
 

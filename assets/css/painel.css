@@ -168,7 +168,10 @@
 
 /* — Painel: casca -------------------------------------------------------- */
 
-.pnl-shell { min-height: 100svh; padding-bottom: 104px; }
+.pnl-shell { min-height: 100svh; }
+
+/* Só a aba Produtos tem a barra flutuante fixa — reserva espaço só nela. */
+#pnl-tab-produtos { padding-bottom: 104px; }
 
 .pnl-header {
   position: sticky;
@@ -222,6 +225,38 @@
 }
 .pnl-logout-btn:hover { background: rgba(216, 179, 74, .12); }
 
+/* — Abas (Dashboard / Produtos) -------------------------------------------- */
+
+.pnl-tabs {
+  display: flex;
+  gap: 4px;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 12px clamp(16px, 4vw, 40px) 0;
+}
+
+.pnl-tab {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 8px 8px 0 0;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  background: transparent;
+  color: var(--color-neutral-500);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pnl-tab:hover { color: var(--color-neutral-300); }
+.pnl-tab.is-active {
+  border-color: var(--rc-hairline);
+  background: linear-gradient(180deg, rgba(216, 179, 74, .08), transparent);
+  color: var(--rc-yellow);
+}
+
+.pnl-tab-panel { min-height: 0; }
+
 .pnl-main {
   max-width: 1080px;
   margin: 0 auto;
@@ -229,6 +264,91 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
+}
+
+/* — Dashboard --------------------------------------------------------------- */
+
+.pnl-dash-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.pnl-dash-head h2 {
+  font-size: clamp(24px, 5vw, 32px);
+  letter-spacing: -.02em;
+  color: var(--rc-title);
+}
+
+.pnl-period { display: flex; gap: 6px; }
+.pnl-period-btn {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  border: 1px solid rgba(255, 255, 255, .12);
+  background: transparent;
+  color: var(--color-neutral-400);
+}
+.pnl-period-btn.is-active {
+  border-color: var(--rc-yellow);
+  background: rgba(255, 212, 0, .14);
+  color: var(--rc-yellow);
+}
+
+.pnl-dash-demo {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(216, 179, 74, .35);
+  background: rgba(216, 179, 74, .08);
+  color: var(--rc-gold-soft);
+  font-size: 13px;
+}
+
+.pnl-dash-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+@media (min-width: 640px) {
+  .pnl-dash-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 960px) {
+  .pnl-dash-grid { grid-template-columns: repeat(6, 1fr); }
+}
+
+.pnl-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--rc-hairline-soft);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .035), rgba(255, 255, 255, .012));
+}
+.pnl-stat-card__label {
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--color-neutral-500);
+  font-weight: 600;
+}
+.pnl-stat-card__value {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: clamp(19px, 4.4vw, 26px);
+  line-height: 1.15;
+  color: var(--rc-title);
+  overflow-wrap: anywhere;
+}
+.pnl-stat-card__sub {
+  font-size: 11px;
+  color: var(--color-neutral-500);
 }
 
 .pnl-title-row {

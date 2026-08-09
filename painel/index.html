@@ -61,28 +61,54 @@
     </button>
   </header>
 
-  <div class="pnl-main">
-    <div class="pnl-title-row">
-      <h2>Produtos</h2>
-      <p id="pnl-summary" class="pnl-summary"></p>
-      <p id="pnl-warning" class="pnl-warning" hidden></p>
+  <nav class="pnl-tabs" role="tablist" aria-label="Seções do painel">
+    <button type="button" class="pnl-tab is-active" data-tab="dashboard" role="tab" aria-selected="true" id="pnl-tab-btn-dashboard">Dashboard</button>
+    <button type="button" class="pnl-tab" data-tab="produtos" role="tab" aria-selected="false" id="pnl-tab-btn-produtos">Produtos</button>
+  </nav>
+
+  <!-- ─── Aba: Dashboard ─── -->
+  <div id="pnl-tab-dashboard" class="pnl-tab-panel" role="tabpanel" aria-labelledby="pnl-tab-btn-dashboard">
+    <div class="pnl-main">
+      <div class="pnl-dash-head">
+        <h2>Dashboard</h2>
+        <div id="pnl-period" class="pnl-period" role="tablist" aria-label="Período">
+          <button type="button" class="pnl-period-btn is-active" data-period="7d">Últimos 7 dias</button>
+          <button type="button" class="pnl-period-btn" data-period="30d">Últimos 30 dias</button>
+        </div>
+      </div>
+
+      <p id="pnl-dash-demo" class="pnl-dash-demo" hidden>Mostrando dados de demonstração — conecte a conta de anúncios pra ver os números reais.</p>
+      <p id="pnl-dash-error" class="pnl-error" role="alert" hidden></p>
+
+      <div id="pnl-dash-cards" class="pnl-dash-grid" aria-busy="true"></div>
     </div>
-
-    <div id="pnl-filters" class="pnl-filters" role="tablist" aria-label="Filtrar por categoria"></div>
-
-    <p id="pnl-load-error" class="pnl-error" role="alert" hidden></p>
-
-    <div id="pnl-grid" class="pnl-grid" aria-busy="true"></div>
-
-    <p id="pnl-empty" class="pnl-empty" hidden>Nenhum produto nesta categoria.</p>
   </div>
 
-  <div class="pnl-fab-bar">
-    <div class="pnl-fab-inner">
-      <button type="button" id="pnl-novo" class="pnl-fab">
-        <svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true"><path d="M224 128a8 8 0 0 1-8 8h-80v80a8 8 0 0 1-16 0v-80H40a8 8 0 0 1 0-16h80V40a8 8 0 0 1 16 0v80h80a8 8 0 0 1 8 8Z"></path></svg>
-        Adicionar produto
-      </button>
+  <!-- ─── Aba: Produtos ─── -->
+  <div id="pnl-tab-produtos" class="pnl-tab-panel" role="tabpanel" aria-labelledby="pnl-tab-btn-produtos" hidden>
+    <div class="pnl-main">
+      <div class="pnl-title-row">
+        <h2>Produtos</h2>
+        <p id="pnl-summary" class="pnl-summary"></p>
+        <p id="pnl-warning" class="pnl-warning" hidden></p>
+      </div>
+
+      <div id="pnl-filters" class="pnl-filters" role="tablist" aria-label="Filtrar por categoria"></div>
+
+      <p id="pnl-load-error" class="pnl-error" role="alert" hidden></p>
+
+      <div id="pnl-grid" class="pnl-grid" aria-busy="true"></div>
+
+      <p id="pnl-empty" class="pnl-empty" hidden>Nenhum produto nesta categoria.</p>
+    </div>
+
+    <div class="pnl-fab-bar">
+      <div class="pnl-fab-inner">
+        <button type="button" id="pnl-novo" class="pnl-fab">
+          <svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true"><path d="M224 128a8 8 0 0 1-8 8h-80v80a8 8 0 0 1-16 0v-80H40a8 8 0 0 1 0-16h80V40a8 8 0 0 1 16 0v80h80a8 8 0 0 1 8 8Z"></path></svg>
+          Adicionar produto
+        </button>
+      </div>
     </div>
   </div>
 

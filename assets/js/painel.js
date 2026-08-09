@@ -18,14 +18,25 @@
 
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
+  var CARDS_DASH = [
+    { chave: 'gastoTotal', rotulo: 'Gasto total', formato: 'moeda' },
+    { chave: 'cliques', rotulo: 'Cliques', formato: 'numero' },
+    { chave: 'impressoes', rotulo: 'Impressões', formato: 'numero' },
+    { chave: 'ctr', rotulo: 'CTR', formato: 'percentual' },
+    { chave: 'cpc', rotulo: 'CPC', formato: 'moeda' },
+    { chave: 'resultados', rotulo: 'Resultados', sub: 'Conversas iniciadas', formato: 'numero' }
+  ];
+
   var state = {
+    aba: 'dashboard',
     produtos: [],
     filtro: 'todos',
     editandoId: null,
     excluindoId: null,
     fotoArquivo: null,
     fotoPreviewUrl: '',
-    salvando: false
+    salvando: false,
+    dashPeriodo: '7d'
   };
 
   var el = {};
@@ -34,7 +45,10 @@
     [
       'pnl-boot', 'pnl-login', 'pnl-painel',
       'pnl-login-form', 'pnl-login-error', 'pnl-email', 'pnl-senha', 'pnl-login-submit',
-      'pnl-logout', 'pnl-summary', 'pnl-warning', 'pnl-filters', 'pnl-grid', 'pnl-empty', 'pnl-load-error',
+      'pnl-logout',
+      'pnl-tab-dashboard', 'pnl-tab-produtos', 'pnl-tab-btn-dashboard', 'pnl-tab-btn-produtos',
+      'pnl-period', 'pnl-dash-demo', 'pnl-dash-error', 'pnl-dash-cards',
+      'pnl-summary', 'pnl-warning', 'pnl-filters', 'pnl-grid', 'pnl-empty', 'pnl-load-error',
       'pnl-novo', 'pnl-modal-backdrop', 'pnl-modal-title', 'pnl-modal-close',
       'pnl-form', 'pnl-form-error', 'pnl-foto', 'pnl-photo-preview', 'pnl-photo-caption',
       'pnl-nome', 'pnl-categoria', 'pnl-cor-select', 'pnl-cor-outra-field', 'pnl-cor-outra',
@@ -81,7 +95,64 @@
     el['pnl-boot'].hidden = true;
     el['pnl-login'].hidden = true;
     el['pnl-painel'].hidden = false;
-    carregarProdutos();
+    trocarAba(state.aba);
+  }
+
+  /* — Abas (Dashboard / Produtos) -------------------------------------------- */
+
+  function trocarAba(aba) {
+    state.aba = aba;
+    el['pnl-tab-dashboard'].hidden = aba !== 'dashboard';
+    el['pnl-tab-produtos'].hidden = aba !== 'produtos';
+    el['pnl-tab-btn-dashboard'].classList.toggle('is-active', aba === 'dashboard');
+    el['pnl-tab-btn-dashboard'].setAttribute('aria-selected', String(aba === 'dashboard'));
+    el['pnl-tab-btn-produtos'].classList.toggle('is-active', aba === 'produtos');
+    el['pnl-tab-btn-produtos'].setAttribute('aria-selected', String(aba === 'produtos'));
+
+    if (aba === 'dashboard') carregarDashboard();
+    else carregarProdutos();
+  }
+
+  /* — Dashboard (métricas de anúncios) ---------------------------------------- */
+
+  function formatarValor(valor, formato) {
+    var n = Number(valor || 0);
+    if (formato === 'moeda') return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (formato === 'percentual') return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+    return n.toLocaleString('pt-BR');
+  }
+
+  function renderDashboard(dados) {
+    el['pnl-dash-demo'].hidden = !dados.demo;
+    el['pnl-dash-cards'].innerHTML = CARDS_DASH.map(function (c) {
+      return '<div class="pnl-stat-card">' +
+        '<span class="pnl-stat-card__label">' + escapeHtml(c.rotulo) + '</span>' +
+        '<span class="pnl-stat-card__value">' + formatarValor(dados[c.chave], c.formato) + '</span>' +
+        (c.sub ? '<span class="pnl-stat-card__sub">' + escapeHtml(c.sub) + '</span>' : '') +
+        '</div>';
+    }).join('');
+  }
+
+  async function carregarDashboard() {
+    el['pnl-dash-error'].hidden = true;
+    el['pnl-dash-cards'].setAttribute('aria-busy', 'true');
+    try {
+      var sessRes = await sb.auth.getSession();
+      var token = sessRes.data.session && sessRes.data.session.access_token;
+      if (!token) throw new Error('sem sessão ativa');
+
+      var resp = await fetch('/api/ads-metrics?period=' + state.dashPeriodo, {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      if (!resp.ok) throw new Error('falha ao consultar /api/ads-metrics');
+
+      renderDashboard(await resp.json());
+    } catch (error) {
+      el['pnl-dash-error'].hidden = false;
+      el['pnl-dash-error'].textContent = 'Não foi possível carregar as métricas de anúncios.';
+    } finally {
+      el['pnl-dash-cards'].removeAttribute('aria-busy');
+    }
   }
 
   /* — Carregar / renderizar produtos ---------------------------------------- */
@@ -379,6 +450,19 @@
     });
 
     el['pnl-logout'].addEventListener('click', function () { sb.auth.signOut(); });
+
+    el['pnl-tab-btn-dashboard'].addEventListener('click', function () { trocarAba('dashboard'); });
+    el['pnl-tab-btn-produtos'].addEventListener('click', function () { trocarAba('produtos'); });
+
+    el['pnl-period'].addEventListener('click', function (ev) {
+      var btn = ev.target.closest('[data-period]');
+      if (!btn) return;
+      state.dashPeriodo = btn.dataset.period;
+      el['pnl-period'].querySelectorAll('.pnl-period-btn').forEach(function (b) {
+        b.classList.toggle('is-active', b === btn);
+      });
+      carregarDashboard();
+    });
 
     el['pnl-filters'].addEventListener('click', function (ev) {
       var btn = ev.target.closest('[data-filtro]');
