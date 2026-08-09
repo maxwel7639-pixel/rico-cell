@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel — Rico Cell</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="../assets/img/logo-rico-cell.jpg">
+<link rel="apple-touch-icon" href="../assets/img/logo-rico-cell.jpg">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../assets/css/styles.css">
+<link rel="stylesheet" href="../assets/css/painel.css">
+</head>
+<body>
+
+<!-- Carregando sessão: evita "piscar" login/painel antes do Supabase responder -->
+<div id="pnl-boot" class="pnl-boot" aria-hidden="true"></div>
+
+<!-- ═══ Login ═══ -->
+<div id="pnl-login" class="pnl-login" hidden>
+  <div class="pnl-login__glow" aria-hidden="true"></div>
+  <div class="pnl-login__box">
+    <img class="pnl-login__logo" src="../assets/img/logo-rico-cell.jpg" alt="Rico Cell">
+    <div class="pnl-login__head">
+      <span class="pnl-login__eyebrow">Área restrita</span>
+      <h1 class="pnl-login__title">Painel Rico Cell</h1>
+      <p class="pnl-login__sub">Gerencie os produtos que aparecem no site.</p>
+    </div>
+
+    <form id="pnl-login-form" class="pnl-login-form" novalidate>
+      <p id="pnl-login-error" class="pnl-error" role="alert" hidden></p>
+      <label class="pnl-field">
+        <span>E-mail</span>
+        <input type="email" id="pnl-email" name="email" placeholder="rafael@ricocell.com.br" autocomplete="email" required>
+      </label>
+      <label class="pnl-field">
+        <span>Senha</span>
+        <input type="password" id="pnl-senha" name="senha" placeholder="••••••••" autocomplete="current-password" required>
+      </label>
+      <button type="submit" id="pnl-login-submit" class="pnl-submit">Entrar</button>
+    </form>
+
+    <a href="../index.html" class="pnl-login__back">← Voltar para o site</a>
+  </div>
+</div>
+
+<!-- ═══ Painel ═══ -->
+<div id="pnl-painel" class="pnl-shell" hidden>
+
+  <header class="pnl-header">
+    <div class="pnl-brand">
+      <img class="pnl-brand__mark" src="../assets/img/logo-rico-cell.jpg" alt="Rico Cell">
+      <span class="pnl-brand__name">Painel</span>
+    </div>
+    <button type="button" id="pnl-logout" class="pnl-logout-btn">
+      <svg viewBox="0 0 256 256" fill="currentColor" width="16" height="16" aria-hidden="true"><path d="M112 216a8 8 0 0 1-8 8H48a16 16 0 0 1-16-16V48a16 16 0 0 1 16-16h56a8 8 0 0 1 0 16H48v160h56a8 8 0 0 1 8 8Zm109.66-93.66-40-40a8 8 0 0 0-11.32 11.32L196.69 120H104a8 8 0 0 0 0 16h92.69l-26.35 26.34a8 8 0 0 0 11.32 11.32l40-40a8 8 0 0 0 0-11.32Z"></path></svg>
+      Sair
+    </button>
+  </header>
+
+  <div class="pnl-main">
+    <div class="pnl-title-row">
+      <h2>Produtos</h2>
+      <p id="pnl-summary" class="pnl-summary"></p>
+      <p id="pnl-warning" class="pnl-warning" hidden></p>
+    </div>
+
+    <div id="pnl-filters" class="pnl-filters" role="tablist" aria-label="Filtrar por categoria"></div>
+
+    <p id="pnl-load-error" class="pnl-error" role="alert" hidden></p>
+
+    <div id="pnl-grid" class="pnl-grid" aria-busy="true"></div>
+
+    <p id="pnl-empty" class="pnl-empty" hidden>Nenhum produto nesta categoria.</p>
+  </div>
+
+  <div class="pnl-fab-bar">
+    <div class="pnl-fab-inner">
+      <button type="button" id="pnl-novo" class="pnl-fab">
+        <svg viewBox="0 0 256 256" fill="currentColor" width="18" height="18" aria-hidden="true"><path d="M224 128a8 8 0 0 1-8 8h-80v80a8 8 0 0 1-16 0v-80H40a8 8 0 0 1 0-16h80V40a8 8 0 0 1 16 0v80h80a8 8 0 0 1 8 8Z"></path></svg>
+        Adicionar produto
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal adicionar/editar -->
+  <div id="pnl-modal-backdrop" class="pnl-backdrop" hidden>
+    <div class="pnl-sheet" role="dialog" aria-modal="true" aria-labelledby="pnl-modal-title">
+      <div class="pnl-sheet__head">
+        <h3 id="pnl-modal-title" class="pnl-sheet__title">Novo produto</h3>
+        <button type="button" id="pnl-modal-close" class="pnl-close-btn" aria-label="Fechar">
+          <svg viewBox="0 0 256 256" fill="currentColor" width="17" height="17" aria-hidden="true"><path d="M205.66 194.34a8 8 0 0 1-11.32 11.32L128 139.31l-66.34 66.35a8 8 0 0 1-11.32-11.32L116.69 128 50.34 61.66a8 8 0 0 1 11.32-11.32L128 116.69l66.34-66.35a8 8 0 0 1 11.32 11.32L139.31 128Z"></path></svg>
+        </button>
+      </div>
+
+      <form id="pnl-form" class="pnl-form" novalidate>
+        <p id="pnl-form-error" class="pnl-error" role="alert" hidden></p>
+
+        <label class="pnl-photo-field">
+          <span id="pnl-photo-preview" class="pnl-photo-preview"></span>
+          <span class="pnl-photo-text">
+            <strong>Foto do produto</strong>
+            <span id="pnl-photo-caption">Toque para escolher do celular</span>
+          </span>
+          <input type="file" id="pnl-foto" accept="image/*" hidden>
+        </label>
+
+        <label class="pnl-field">
+          <span>Nome do modelo</span>
+          <input type="text" id="pnl-nome" placeholder="Ex.: iPhone 12 Pro" required>
+        </label>
+
+        <div class="pnl-field-grid">
+          <label class="pnl-field">
+            <span>Categoria</span>
+            <select id="pnl-categoria">
+              <option value="iphone">iPhone</option>
+              <option value="android">Android</option>
+              <option value="eletro">Eletro</option>
+            </select>
+          </label>
+          <label class="pnl-field">
+            <span>Cor</span>
+            <select id="pnl-cor-select">
+              <option value="" disabled hidden>Selecione</option>
+              <option value="Grafite">Grafite</option>
+              <option value="Verde-água">Verde-água</option>
+              <option value="Verde">Verde</option>
+              <option value="Preto">Preto</option>
+              <option value="Branco">Branco</option>
+              <option value="Outra">Outra</option>
+            </select>
+          </label>
+        </div>
+
+        <label id="pnl-cor-outra-field" class="pnl-field" hidden>
+          <span>Qual cor?</span>
+          <input type="text" id="pnl-cor-outra" placeholder="Digite a cor">
+        </label>
+
+        <div class="pnl-toggle-field">
+          <button type="button" id="pnl-form-disponivel" class="pnl-toggle-btn pnl-toggle-btn--row">
+            <span>Disponível no site</span>
+            <span class="pnl-toggle"><span class="pnl-toggle__thumb"></span></span>
+          </button>
+          <button type="button" id="pnl-form-destaque" class="pnl-toggle-btn pnl-toggle-btn--row">
+            <span>Marcar como destaque</span>
+            <span class="pnl-toggle"><span class="pnl-toggle__thumb"></span></span>
+          </button>
+        </div>
+
+        <button type="submit" id="pnl-form-submit" class="pnl-submit">Salvar produto</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Confirmação de exclusão -->
+  <div id="pnl-confirm-backdrop" class="pnl-backdrop pnl-backdrop--center" hidden>
+    <div class="pnl-confirm" role="dialog" aria-modal="true" aria-labelledby="pnl-confirm-title">
+      <h3 id="pnl-confirm-title" class="pnl-confirm__title">Excluir produto?</h3>
+      <p id="pnl-confirm-text" class="pnl-confirm__text"></p>
+      <div class="pnl-confirm__actions">
+        <button type="button" id="pnl-confirm-cancel" class="pnl-btn-cancel">Cancelar</button>
+        <button type="button" id="pnl-confirm-delete" class="pnl-btn-danger">Excluir</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="pnl-toast" class="pnl-toast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2" defer></script>
+<script src="../assets/js/painel.js" defer></script>
+</body>
+</html>

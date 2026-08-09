@@ -14,6 +14,10 @@ index.html              página inteira
 assets/css/styles.css   tokens do design system "Nocturne" + camada de marca
 assets/js/main.js       revelação ao rolar, tilt 3D, seletor de cor, carrossel
 assets/img/             fotos da loja (as mesmas do projeto de design)
+
+painel/index.html       rota /painel — gestão de produtos (login + CRUD)
+assets/css/painel.css   estilos da rota /painel
+assets/js/painel.js     client Supabase, auth e CRUD da tabela produtos
 ```
 
 ## Rodar localmente
@@ -25,6 +29,32 @@ npx serve .          # ou: python3 -m http.server 8000
 ```
 
 Abrir `http://localhost:3000` (ou `:8000`).
+
+## Painel de produtos (`/painel`)
+
+Área restrita para gerenciar os produtos que aparecem no site — cadastrar,
+editar, duplicar, excluir, e alternar **Disponível** / **Destaque**. Assim
+como o resto do site, é HTML/CSS/JS puro: `supabase-js` é carregado via CDN
+(`unpkg.com/@supabase/supabase-js@2`), sem build e sem passo de instalação.
+
+- **Projeto Supabase:** `rico-cell` (`bpncnintvpmpqfdtykms`, região `sa-east-1`).
+- **Auth:** e-mail + senha via Supabase Auth. **Não existe cadastro público** —
+  a tela de login só aceita usuários já criados. Para dar acesso a alguém,
+  convide pelo painel do Supabase (Authentication → Users → Invite user); a
+  pessoa define a senha pelo link do convite e já pode entrar em `/painel`.
+- **Dados:** tabela `public.produtos` (`nome_modelo`, `categoria` —
+  iphone/android/eletro —, `cor`, `imagem_url`, `disponivel`, `destaque`).
+  RLS já publica só os `disponivel = true` para visitantes; usuários
+  autenticados leem e escrevem tudo.
+- **Fotos:** upload direto no formulário vai para o bucket público `produtos`
+  no Storage; a URL pública fica em `imagem_url`.
+- **Credenciais no código:** `assets/js/painel.js` tem a URL do projeto e a
+  chave **publicável** (`sb_publishable_...`) hardcoded — isso é esperado
+  nesse tipo de client-side estático (a chave publicável não dá acesso a
+  nada além do que a RLS permite). Nunca coloque a chave `service_role` aqui.
+
+Ao publicar em Vercel/Netlify, a pasta `painel/` com `index.html` já responde
+em `/painel/`; no GitHub Pages pode ser necessário o `/` final na URL.
 
 ## Publicar
 
