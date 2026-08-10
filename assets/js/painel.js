@@ -18,6 +18,12 @@
 
   var sb;
 
+  /* Paleta dourada única pros 3 gráficos — nada de cinza/azul neutro,
+     tudo dentro da família de cor da marca (mais clara → mais escura). */
+  var COR_OURO_CLARA = '#ffd400';
+  var COR_OURO_MEDIA = '#d8b34a';
+  var COR_OURO_ESCURA = '#a3823f';
+
   var CARDS_DASH = [
     { chave: 'gastoTotal', rotulo: 'Gasto total', formato: 'moeda' },
     { chave: 'cliques', rotulo: 'Cliques', formato: 'numero' },
@@ -53,7 +59,7 @@
       'pnl-boot', 'pnl-boot-error', 'pnl-login', 'pnl-painel',
       'pnl-login-form', 'pnl-login-error', 'pnl-email', 'pnl-senha', 'pnl-login-submit',
       'pnl-logout',
-      'pnl-sidebar', 'pnl-side-btn-dashboard', 'pnl-side-btn-produtos', 'pnl-sidebar-logout',
+      'pnl-sidebar', 'pnl-sidebar-toggle', 'pnl-side-btn-dashboard', 'pnl-side-btn-produtos', 'pnl-sidebar-logout',
       'pnl-tab-dashboard', 'pnl-tab-produtos', 'pnl-tab-btn-dashboard', 'pnl-tab-btn-produtos',
       'pnl-period', 'pnl-dash-demo', 'pnl-dash-error', 'pnl-dash-cards', 'pnl-dash-charts',
       'pnl-chart-gasto', 'pnl-chart-cliques', 'pnl-chart-categorias',
@@ -137,6 +143,26 @@
     }
   }
 
+  /* — Sidebar colapsável (só existe no layout desktop) ------------------------ */
+
+  var SIDEBAR_STORAGE_KEY = 'rc-painel-sidebar-expandida';
+
+  function aplicarEstadoSidebar(expandida) {
+    el['pnl-painel'].classList.toggle('pnl-sidebar-expandida', expandida);
+    el['pnl-sidebar-toggle'].setAttribute('aria-expanded', String(expandida));
+    el['pnl-sidebar-toggle'].setAttribute('aria-label', expandida ? 'Recolher menu' : 'Expandir menu');
+  }
+
+  function sidebarEstaExpandida() {
+    return el['pnl-painel'].classList.contains('pnl-sidebar-expandida');
+  }
+
+  function alternarSidebar() {
+    var expandida = !sidebarEstaExpandida();
+    aplicarEstadoSidebar(expandida);
+    try { window.localStorage.setItem(SIDEBAR_STORAGE_KEY, expandida ? '1' : '0'); } catch (error) { /* localStorage indisponível — só não persiste */ }
+  }
+
   /* — Dashboard (métricas de anúncios) ---------------------------------------- */
 
   function formatarValor(valor, formato) {
@@ -166,7 +192,7 @@
   }
 
   function renderCharts(dados) {
-    if (!state.isDesktop || state.aba !== 'dashboard' || !dados) return;
+    if (state.aba !== 'dashboard' || !dados) return;
     destruirGraficos();
 
     var rotulos = dados.serieDiaria.map(function (d) { return d.data.slice(5); });
@@ -178,10 +204,10 @@
         datasets: [{
           label: 'Gasto (R$)',
           data: dados.serieDiaria.map(function (d) { return d.gasto; }),
-          borderColor: '#d8b34a',
-          backgroundColor: 'rgba(216,179,74,.15)',
+          borderColor: COR_OURO_CLARA,
+          backgroundColor: 'rgba(255,212,0,.14)',
           fill: true,
-          tension: .35,
+          tension: .42,
           pointRadius: 2
         }]
       },
@@ -190,7 +216,7 @@
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          y: { beginAtZero: true, ticks: { color: '#8a8f9c' }, grid: { color: 'rgba(255,255,255,.06)' } },
+          y: { beginAtZero: true, ticks: { color: '#8a8f9c' }, grid: { color: 'rgba(255,255,255,.04)' } },
           x: { ticks: { color: '#8a8f9c' }, grid: { display: false } }
         }
       }
@@ -201,8 +227,8 @@
       data: {
         labels: rotulos,
         datasets: [
-          { label: 'Cliques', data: dados.serieDiaria.map(function (d) { return d.cliques; }), backgroundColor: '#ffd400' },
-          { label: 'Impressões', data: dados.serieDiaria.map(function (d) { return d.impressoes; }), backgroundColor: '#3a3d4a' }
+          { label: 'Cliques', data: dados.serieDiaria.map(function (d) { return d.cliques; }), backgroundColor: COR_OURO_CLARA },
+          { label: 'Impressões', data: dados.serieDiaria.map(function (d) { return d.impressoes; }), backgroundColor: COR_OURO_ESCURA }
         ]
       },
       options: {
@@ -210,7 +236,7 @@
         maintainAspectRatio: false,
         plugins: { legend: { labels: { color: '#c8ccd6' } } },
         scales: {
-          y: { beginAtZero: true, ticks: { color: '#8a8f9c' }, grid: { color: 'rgba(255,255,255,.06)' } },
+          y: { beginAtZero: true, ticks: { color: '#8a8f9c' }, grid: { color: 'rgba(255,255,255,.04)' } },
           x: { ticks: { color: '#8a8f9c' }, grid: { display: false } }
         }
       }
@@ -223,7 +249,7 @@
         labels: categorias.map(function (c) { return categoriaRotulo(c.categoria); }),
         datasets: [{
           data: categorias.map(function (c) { return c.resultados; }),
-          backgroundColor: ['#d8b34a', '#ffd400', '#5a5f70']
+          backgroundColor: [COR_OURO_CLARA, COR_OURO_MEDIA, COR_OURO_ESCURA]
         }]
       },
       options: {
@@ -708,6 +734,15 @@
     el['pnl-side-btn-produtos'].addEventListener('click', function () { trocarAba('produtos'); });
     el['pnl-sidebar-logout'].addEventListener('click', function () { sb.auth.signOut(); });
 
+    el['pnl-sidebar-toggle'].addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      alternarSidebar();
+    });
+    el['pnl-sidebar'].addEventListener('click', function (ev) {
+      if (ev.target.closest('.pnl-side-tab, .pnl-sidebar__logout, #pnl-sidebar-toggle')) return;
+      if (!sidebarEstaExpandida()) alternarSidebar();
+    });
+
     el['pnl-period'].addEventListener('click', function (ev) {
       var btn = ev.target.closest('[data-period]');
       if (!btn) return;
@@ -831,21 +866,24 @@
     sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     setupEventos();
 
-    /* Layout desktop (≥1024px): sidebar, gráficos, tabela, etc. Ao cruzar
-       o breakpoint pra baixo, destrói os gráficos e força a visualização
-       em grade (a rede de segurança do CSS também cobre isso, mas aqui
-       evita manter instâncias do Chart.js vivas sem necessidade). */
+    /* Estado da sidebar (expandida/colapsada) salvo entre sessões. Aplicado
+       aqui, antes de mostrarPainel() revelar qualquer coisa, então não há
+       flash do estado errado. */
+    var sidebarExpandidaSalva = false;
+    try { sidebarExpandidaSalva = window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1'; } catch (error) { /* localStorage indisponível — mantém colapsada */ }
+    aplicarEstadoSidebar(sidebarExpandidaSalva);
+
+    /* Layout desktop (≥1024px): sidebar, tabela, etc. Os gráficos
+       aparecem em qualquer largura e o próprio Chart.js já é responsive
+       (redesenha sozinho quando o contêiner muda de tamanho), então não
+       precisa recriar nada ao cruzar o breakpoint — só a visualização de
+       Produtos (Grade/Tabela) depende da largura. */
     var mqlDesktop = window.matchMedia('(min-width: 1024px)');
     state.isDesktop = mqlDesktop.matches;
     mqlDesktop.addEventListener('change', function (ev) {
       state.isDesktop = ev.matches;
-      if (!ev.matches) {
-        destruirGraficos();
-        forcarVisualizacaoGrade();
-      } else {
-        aplicarVisualizacao();
-        if (state.aba === 'dashboard' && state.dashDados) renderCharts(state.dashDados);
-      }
+      if (!ev.matches) forcarVisualizacaoGrade();
+      else aplicarVisualizacao();
     });
 
     /* onAuthStateChange dispara imediatamente com a sessão atual (evento

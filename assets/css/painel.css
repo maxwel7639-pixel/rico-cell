@@ -31,9 +31,10 @@
 }
 
 /* — Layout desktop (≥1024px) — elementos novos ficam ocultos por padrão;
-   só aparecem dentro do bloco @media (min-width: 1024px) lá embaixo. */
+   só aparecem dentro do bloco @media (min-width: 1024px) lá embaixo. Os
+   gráficos do dashboard são exceção: aparecem em qualquer largura (ver
+   seção "Gráficos do dashboard" abaixo). */
 .pnl-sidebar,
-.pnl-dash-charts,
 .pnl-search,
 .pnl-view-toggle,
 .pnl-select-check {
@@ -374,6 +375,29 @@
   font-size: 11px;
   color: var(--color-neutral-500);
 }
+
+/* — Gráficos do dashboard — mobile-first: aparecem em qualquer largura,
+   empilhados numa coluna só; o bloco desktop lá embaixo só ajusta o
+   número de colunas. */
+.pnl-dash-charts {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+.pnl-chart-card--donut { grid-column: 1 / -1; }
+.pnl-chart-card {
+  background: var(--rc-surface);
+  border: 1px solid var(--rc-hairline-soft);
+  border-radius: 14px;
+  padding: 20px;
+}
+.pnl-chart-card__title {
+  margin: 0 0 var(--space-4);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--rc-title);
+}
+.pnl-chart-card__canvas-wrap { position: relative; height: 260px; }
 
 .pnl-title-row {
   display: flex;
@@ -778,35 +802,42 @@
    ═══════════════════════════════════════════════════════════════════════ */
 @media (min-width: 1024px) {
 
-  /* — Casca: sidebar + header + conteúdo em grid — */
-  .pnl-shell {
-    display: grid;
-    grid-template-columns: 264px minmax(0, 1fr);
-    grid-template-areas:
-      "sidebar header"
-      "sidebar main";
-  }
-  .pnl-header { grid-area: header; }
+  /* — Casca: sidebar fixa e colapsável; conteúdo deslocado pela mesma
+     largura, animando junto (variável compartilhada, então os dois
+     lados transicionam em sincronia). — */
+  .pnl-shell { --sidebar-w: 72px; }
+  .pnl-shell.pnl-sidebar-expandida { --sidebar-w: 240px; }
+
   .pnl-tabs { display: none; }
+  .pnl-header {
+    margin-left: var(--sidebar-w);
+    transition: margin-left .25s ease;
+  }
   #pnl-tab-dashboard,
-  #pnl-tab-produtos { grid-area: main; min-width: 0; }
+  #pnl-tab-produtos {
+    margin-left: var(--sidebar-w);
+    transition: margin-left .25s ease;
+    min-width: 0;
+  }
 
   .pnl-sidebar {
     display: flex;
     flex-direction: column;
     gap: var(--space-6);
-    grid-area: sidebar;
-    padding: var(--space-6) var(--space-4);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-w);
+    height: 100svh;
+    padding: var(--space-6) 16px;
     border-right: 1px solid var(--rc-hairline);
     background: var(--rc-surface);
-    position: sticky;
-    top: 0;
-    align-self: start;
-    height: 100svh;
-    overflow-y: auto;
+    overflow: hidden;
+    transition: width .25s ease;
+    z-index: 50;
   }
   .pnl-sidebar__brand { display: flex; align-items: center; gap: var(--space-3); }
-  .pnl-sidebar__mark { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; }
+  .pnl-sidebar__mark { flex: none; width: 32px; height: 32px; border-radius: 8px; object-fit: cover; }
   .pnl-sidebar__name {
     font-family: var(--font-heading);
     font-weight: 600;
@@ -814,7 +845,27 @@
     letter-spacing: .1em;
     text-transform: uppercase;
     font-size: 13px;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity .15s ease;
   }
+  .pnl-sidebar__toggle {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-left: -8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, .1);
+    background: transparent;
+    color: var(--color-neutral-400);
+    cursor: pointer;
+  }
+  .pnl-sidebar__toggle:hover { color: var(--rc-yellow); border-color: rgba(216, 179, 74, .4); }
+  .pnl-sidebar__toggle svg { transition: transform .25s ease; }
+  .pnl-shell.pnl-sidebar-expandida .pnl-sidebar__toggle svg { transform: rotate(180deg); }
   .pnl-sidebar__nav { display: flex; flex-direction: column; gap: 4px; }
   .pnl-side-tab {
     display: flex;
@@ -831,6 +882,12 @@
     font-family: inherit;
     cursor: pointer;
     text-align: left;
+    white-space: nowrap;
+  }
+  .pnl-side-tab svg { flex: none; }
+  .pnl-side-tab span {
+    opacity: 0;
+    transition: opacity .15s ease;
   }
   .pnl-side-tab:hover { color: var(--color-neutral-300); }
   .pnl-side-tab.is-active { background: rgba(255, 212, 0, .14); color: var(--rc-yellow); }
@@ -849,30 +906,26 @@
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
+    white-space: nowrap;
+  }
+  .pnl-sidebar__logout svg { flex: none; }
+  .pnl-sidebar__logout-label {
+    opacity: 0;
+    transition: opacity .15s ease;
   }
   .pnl-sidebar__logout:hover { background: rgba(216, 179, 74, .12); }
 
-  /* — Gráficos do dashboard — */
-  .pnl-dash-charts {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-6);
-    margin-top: var(--space-2);
+  .pnl-shell.pnl-sidebar-expandida .pnl-sidebar__name,
+  .pnl-shell.pnl-sidebar-expandida .pnl-side-tab span,
+  .pnl-shell.pnl-sidebar-expandida .pnl-sidebar__logout-label {
+    opacity: 1;
+    transition-delay: .1s;
   }
-  .pnl-chart-card--donut { grid-column: 1 / -1; }
-  .pnl-chart-card {
-    background: var(--rc-surface);
-    border: 1px solid var(--rc-hairline-soft);
-    border-radius: 14px;
-    padding: var(--space-4);
-  }
-  .pnl-chart-card__title {
-    margin: 0 0 var(--space-3);
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--rc-title);
-  }
-  .pnl-chart-card__canvas-wrap { position: relative; height: 260px; }
+
+  /* — Gráficos do dashboard: só a contagem de colunas muda aqui — o
+     resto (card, título, altura do canvas) já vem da regra mobile-first
+     lá em cima. — */
+  .pnl-dash-charts { grid-template-columns: 1fr 1fr; }
 
   /* — Toolbar de produtos: filtros + busca + seletor de visualização — */
   #pnl-produtos-toolbar {
