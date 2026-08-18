@@ -51,8 +51,8 @@
   }
 
   /* — Seletor de cor dos iPhones -------------------------------------------
-     Troca a foto principal e o rótulo do card. Bolinhas "sob consulta"
-     (data-mock) escurecem a foto e mostram o selo "foto em breve". */
+     Troca a foto principal e o rótulo do card. Só entram cores que têm
+     foto de verdade; o resto vira a linha "outras cores sob consulta". */
   function setupSwatches() {
     document.querySelectorAll('[data-swatches]').forEach(function (row) {
       row.addEventListener('click', function (ev) {
@@ -66,16 +66,10 @@
           s.setAttribute('aria-pressed', String(s === btn));
         });
 
-        var isMock = btn.hasAttribute('data-mock');
         var photo = card.querySelector('[data-foto]');
-        var overlay = card.querySelector('[data-em-breve]');
         var label = card.querySelector('[data-cor-label]');
 
-        if (photo) {
-          if (btn.dataset.src) photo.src = btn.dataset.src;
-          photo.style.opacity = isMock ? '.28' : '1';
-        }
-        if (overlay) overlay.classList.toggle('is-visible', isMock);
+        if (photo && btn.dataset.src) photo.src = btn.dataset.src;
         if (label && btn.dataset.label) label.textContent = btn.dataset.label;
       });
     });

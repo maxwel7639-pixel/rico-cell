@@ -16,8 +16,8 @@
   --color-neutral-600: #75798c;
   --color-neutral-900: #292b31;
 
-  --font-heading: "Inter", system-ui, sans-serif;
-  --font-body: "Inter", system-ui, sans-serif;
+  --font-heading: "Outfit", system-ui, sans-serif;
+  --font-body: "Manrope", system-ui, sans-serif;
 
   --space-1: 2.8px;
   --space-2: 5.6px;
@@ -128,7 +128,8 @@ h1, h2, h3 {
 
 .section-title {
   font-size: clamp(28px, 4.6vw, 46px);
-  letter-spacing: -.022em;
+  letter-spacing: -.03em;
+  font-weight: 600;
   color: var(--rc-title);
 }
 .section-title--sm { font-size: clamp(26px, 3.6vw, 38px); letter-spacing: -.02em; }
@@ -272,9 +273,10 @@ h1, h2, h3 {
 }
 
 .hero__title {
-  font-size: clamp(34px, 6.4vw, 62px);
-  line-height: 1.04;
-  letter-spacing: -.025em;
+  font-size: clamp(36px, 6.6vw, 66px);
+  line-height: 1.02;
+  letter-spacing: -.035em;
+  font-weight: 600;
   color: var(--rc-title);
   text-wrap: pretty;
 }
@@ -339,11 +341,14 @@ h1, h2, h3 {
 .card {
   display: flex;
   flex-direction: column;
-  background: var(--rc-surface);
-  border: 1px solid var(--color-neutral-900);
-  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015));
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  border: 1px solid var(--rc-hairline);
+  border-radius: 18px;
   overflow: hidden;
-  box-shadow: 0 14px 34px rgba(0, 0, 0, .5);
+  box-shadow: 0 20px 46px -18px rgba(0,0,0,.75), inset 0 1px 0 rgba(255,255,255,.06);
+  transition: border-color .35s ease, transform .35s ease, box-shadow .35s ease;
 }
 .card--tilt { will-change: transform; }
 
@@ -407,39 +412,6 @@ h1, h2, h3 {
   white-space: nowrap;
 }
 
-.badge--soon {
-  top: auto;
-  bottom: 12px;
-  padding: 5px 10px;
-  background: rgba(11, 12, 18, .86);
-  border: 1px solid rgba(216, 179, 74, .35);
-  color: var(--rc-gold-soft);
-  font-size: 10px;
-  font-weight: 600;
-}
-
-.soon-overlay {
-  display: none;
-  position: absolute;
-  inset: 0;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-.soon-overlay.is-visible { display: flex; }
-
-.soon-overlay__chip {
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: rgba(11, 12, 18, .86);
-  border: 1px solid rgba(216, 179, 74, .4);
-  color: var(--rc-gold-soft);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
-
 /* — Seletor de cores ------------------------------------------------------ */
 
 .swatches {
@@ -467,10 +439,6 @@ h1, h2, h3 {
   border-radius: 50%;
   border: 1px solid rgba(243, 245, 254, .2);
   transition: box-shadow .18s ease, transform .18s ease;
-}
-.swatch__dot--mock {
-  background: var(--color-neutral-400);
-  border: 1px dashed rgba(11, 12, 18, .35);
 }
 
 .swatch[aria-pressed="true"] .swatch__dot {
@@ -813,4 +781,48 @@ h1, h2, h3 {
   }
   .depo__track { scroll-behavior: auto; }
   * { transition-duration: .01ms !important; }
+}
+
+/* ---------- Vitrine Android ----------
+   Antes eram 3 cards recortados da MESMA foto, cada um com o selo
+   "foto individual em breve". A foto mostra os três aparelhos de
+   verdade, então vira um bloco só, honesto. */
+.vitrine {
+  display: grid;
+  grid-template-columns: 1.05fr .95fr;
+  gap: clamp(20px, 3vw, 44px);
+  align-items: center;
+  padding: clamp(18px, 2.4vw, 30px);
+  border: 1px solid var(--rc-hairline);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.012));
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  box-shadow: 0 24px 54px -20px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.05);
+}
+.vitrine__media { margin: 0; border-radius: 14px; overflow: hidden; }
+.vitrine__media img { width: 100%; height: auto; display: block; }
+.vitrine__kicker {
+  font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--rc-gold); margin: 0 0 var(--space-8);
+}
+.vitrine__list { list-style: none; margin: 0 0 var(--space-8); padding: 0; }
+.vitrine__list li {
+  display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start;
+  padding: 14px 0; border-top: 1px solid var(--rc-hairline-soft);
+}
+.vitrine__list li:first-child { border-top: 0; padding-top: 0; }
+.vitrine__dot {
+  width: 13px; height: 13px; border-radius: 50%; margin-top: 5px;
+  background: var(--dot); box-shadow: 0 0 0 1px rgba(255,255,255,.16);
+}
+.vitrine__list strong { display: block; color: var(--rc-title); font-size: 17px; font-weight: 600; }
+.vitrine__list em { font-style: normal; color: var(--color-neutral-500); font-size: 14.5px; }
+.vitrine__note { color: var(--color-neutral-600); font-size: 13.5px; margin: 14px 0 0; }
+
+/* linha que substitui as bolinhas de cor "sob consulta" */
+.card__hint { color: var(--color-neutral-600); font-size: 13px; margin: 10px 0 0; }
+
+@media (max-width: 860px) {
+  .vitrine { grid-template-columns: 1fr; }
 }
