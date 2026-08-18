@@ -215,72 +215,241 @@
     });
   }
 
+  /* — Gráficos ------------------------------------------------------------
+     Padrão comum: fundo escuro da marca, número em pt-BR, tooltip legível
+     e ponteiro guiado pelo eixo X (passa o cursor e vê o dia inteiro). */
+  var FMT_INT = new Intl.NumberFormat('pt-BR');
+  var FMT_BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+  var COR_GRID = 'rgba(255,255,255,.05)';
+  var COR_TICK = '#8f94a3';
+
+  function tooltipPadrao(formatarLabel) {
+    return {
+      backgroundColor: 'rgba(12,13,19,.96)',
+      borderColor: 'rgba(216,179,74,.35)',
+      borderWidth: 1,
+      titleColor: '#f3f5fe',
+      bodyColor: '#c8ccd6',
+      padding: 11,
+      cornerRadius: 10,
+      boxWidth: 9,
+      boxHeight: 9,
+      boxPadding: 5,
+      callbacks: formatarLabel ? { label: formatarLabel } : {}
+    };
+  }
+
+  /* Gradiente vertical: sem isso a área do gráfico fica um bloco chapado. */
+  function gradienteOuro(ctx, area) {
+    if (!area) return 'rgba(255,212,0,.2)';
+    var g = ctx.createLinearGradient(0, area.top, 0, area.bottom);
+    g.addColorStop(0, 'rgba(255,212,0,.34)');
+    g.addColorStop(1, 'rgba(255,212,0,0)');
+    return g;
+  }
+
   function renderCharts(dados) {
     if (state.aba !== 'dashboard' || !dados) return;
     destruirGraficos();
 
-    var rotulos = dados.serieDiaria.map(function (d) { return d.data.slice(5); });
+    var serie = dados.serieDiaria || [];
+    var rotulos = serie.map(function (d) {
+      var p = String(d.data).split('-');          /* AAAA-MM-DD -> DD/MM */
+      return p.length === 3 ? p[2] + '/' + p[1] : String(d.data);
+    });
 
+    /* ── Gasto por dia ─────────────────────────────────────────────────── */
     state.charts.gasto = new Chart(el['pnl-chart-gasto'].getContext('2d'), {
       type: 'line',
       data: {
         labels: rotulos,
         datasets: [{
-          label: 'Gasto (R$)',
-          data: dados.serieDiaria.map(function (d) { return d.gasto; }),
+          label: 'Gasto',
+          data: serie.map(function (d) { return d.gasto; }),
           borderColor: COR_OURO_CLARA,
-          backgroundColor: 'rgba(255,212,0,.14)',
+          borderWidth: 2,
+          backgroundColor: function (c) {
+            return gradienteOuro(c.chart.ctx, c.chart.chartArea);
+          },
           fill: true,
-          tension: .42,
-          pointRadius: 2
+          tension: 0.38,
+          /* ponto some em repouso e aparece no hover: linha limpa, mas
+             ainda dá para mirar o dia exato */
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          pointBackgroundColor: COR_OURO_CLARA,
+          pointHoverBorderColor: '#0b0c12',
+          pointHoverBorderWidth: 2
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: tooltipPadrao(function (c) { return '  ' + FMT_BRL.format(c.parsed.y); })
+        },
         scales: {
-          y: { beginAtZero: true, ticks: { color: '#8a8f9c' }, grid: { color: 'rgba(255,255,255,.04)' } },
-          x: { ticks: { color: '#8a8f9c' }, grid: { display: false } }
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: COR_TICK,
+              maxTicksLimit: 5,
+              padding: 8,
+              callback: function (v) { return 'R$ ' + FMT_INT.format(v); }
+            },
+            grid: { color: COR_GRID }
+          },
+          x: {
+            ticks: { color: COR_TICK, maxRotation: 0, autoSkipPadding: 14 },
+            grid: { display: false }
+          }
         }
       }
     });
 
+    /* ── Cliques × impressões ───────────────────────────────────────────
+       Antes as duas séries dividiam o mesmo eixo. Como impressão é ~50x
+       clique, a barra de cliques ficava colada no zero, invisível. Agora
+       impressão é barra (eixo da esquerda) e clique é linha (eixo da
+       direita) — cada um na sua escala, dá para ler os dois juntos. */
     state.charts.cliques = new Chart(el['pnl-chart-cliques'].getContext('2d'), {
-      type: 'bar',
       data: {
         labels: rotulos,
         datasets: [
-          { label: 'Cliques', data: dados.serieDiaria.map(function (d) { return d.cliques; }), backgroundColor: COR_OURO_CLARA },
-          { label: 'Impressões', data: dados.serieDiaria.map(function (d) { return d.impressoes; }), backgroundColor: COR_OURO_ESCURA }
+          {
+            type: 'bar',
+            label: 'Impressões',
+            yAxisID: 'y',
+            data: serie.map(function (d) { return d.impressoes; }),
+            backgroundColor: 'rgba(163,130,63,.55)',
+            hoverBackgroundColor: 'rgba(163,130,63,.85)',
+            borderRadius: 5,
+            borderSkipped: false,
+            order: 2
+          },
+          {
+            type: 'line',
+            label: 'Cliques',
+            yAxisID: 'yCliques',
+            data: serie.map(function (d) { return d.cliques; }),
+            borderColor: COR_OURO_CLARA,
+            borderWidth: 2,
+            backgroundColor: 'transparent',
+            tension: 0.38,
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            pointBackgroundColor: COR_OURO_CLARA,
+            order: 1
+          }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#c8ccd6' } } },
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            labels: {
+              color: '#c8ccd6',
+              usePointStyle: true,
+              pointStyle: 'circle',
+              boxWidth: 8,
+              padding: 16
+            }
+          },
+          tooltip: tooltipPadrao(function (c) {
+            return '  ' + c.dataset.label + ': ' + FMT_INT.format(c.parsed.y);
+          })
+        },
         scales: {
-          y: { beginAtZero: true, ticks: { color: '#8a8f9c' }, grid: { color: 'rgba(255,255,255,.04)' } },
-          x: { ticks: { color: '#8a8f9c' }, grid: { display: false } }
+          y: {
+            position: 'left',
+            beginAtZero: true,
+            title: { display: true, text: 'Impressões', color: COR_TICK, font: { size: 10 } },
+            ticks: {
+              color: COR_TICK,
+              maxTicksLimit: 5,
+              padding: 8,
+              callback: function (v) { return v >= 1000 ? (v / 1000) + 'k' : v; }
+            },
+            grid: { color: COR_GRID }
+          },
+          yCliques: {
+            position: 'right',
+            beginAtZero: true,
+            title: { display: true, text: 'Cliques', color: COR_OURO_MEDIA, font: { size: 10 } },
+            ticks: { color: COR_OURO_MEDIA, maxTicksLimit: 5, padding: 8 },
+            /* uma grade só; duas viram teia */
+            grid: { drawOnChartArea: false }
+          },
+          x: {
+            ticks: { color: COR_TICK, maxRotation: 0, autoSkipPadding: 14 },
+            grid: { display: false }
+          }
         }
       }
     });
 
+    /* ── Resultados por categoria ──────────────────────────────────────── */
     var categorias = dados.categorias || [];
+    var totalCat = categorias.reduce(function (s, c) { return s + c.resultados; }, 0);
+
     state.charts.categorias = new Chart(el['pnl-chart-categorias'].getContext('2d'), {
       type: 'doughnut',
       data: {
         labels: categorias.map(function (c) { return categoriaRotulo(c.categoria); }),
         datasets: [{
           data: categorias.map(function (c) { return c.resultados; }),
-          backgroundColor: [COR_OURO_CLARA, COR_OURO_MEDIA, COR_OURO_ESCURA]
+          backgroundColor: [COR_OURO_CLARA, COR_OURO_MEDIA, COR_OURO_ESCURA],
+          borderColor: '#0e0f14',
+          borderWidth: 3,
+          hoverOffset: 8
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom', labels: { color: '#c8ccd6' } } }
-      }
+        cutout: '68%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: '#c8ccd6',
+              usePointStyle: true,
+              pointStyle: 'circle',
+              boxWidth: 8,
+              padding: 14
+            }
+          },
+          tooltip: tooltipPadrao(function (c) {
+            var pct = totalCat ? Math.round((c.parsed / totalCat) * 100) : 0;
+            return '  ' + FMT_INT.format(c.parsed) + ' (' + pct + '%)';
+          })
+        }
+      },
+      /* total no buraco da rosca: o número que importa fica no centro */
+      plugins: [{
+        id: 'totalNoCentro',
+        afterDraw: function (chart) {
+          var area = chart.chartArea;
+          if (!area) return;
+          var ctx = chart.ctx;
+          var cx = (area.left + area.right) / 2;
+          var cy = (area.top + area.bottom) / 2;
+          ctx.save();
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#f3f5fe';
+          ctx.font = '600 26px Outfit, system-ui, sans-serif';
+          ctx.fillText(FMT_INT.format(totalCat), cx, cy - 7);
+          ctx.fillStyle = COR_TICK;
+          ctx.font = '500 10px Manrope, system-ui, sans-serif';
+          ctx.fillText('CONVERSAS', cx, cy + 13);
+          ctx.restore();
+        }
+      }]
     });
   }
 
