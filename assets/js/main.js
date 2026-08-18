@@ -95,8 +95,142 @@
     if (next) next.addEventListener('click', function () { scrollBy(1); });
   }
 
+  /* — Parallax do fundo do hero -------------------------------------------
+     A foto anda mais devagar que a página, criando profundidade. Amarrado
+     ao requestAnimationFrame para não recalcular a cada evento de scroll. */
+  function setupParallax() {
+    var camadas = document.querySelectorAll('[data-parallax]');
+    if (!camadas.length || reduceMotion) return;
+
+    var pendente = false;
+    function aplicar() {
+      pendente = false;
+      var y = window.pageYOffset;
+      camadas.forEach(function (el) {
+        var taxa = parseFloat(el.dataset.parallax) || 0.15;
+        /* só mexe enquanto a camada ainda pode estar na tela */
+        if (y > el.offsetTop + el.offsetHeight + window.innerHeight) return;
+        el.style.transform = 'translate3d(0,' + (y * taxa).toFixed(1) + 'px,0)';
+      });
+    }
+    window.addEventListener('scroll', function () {
+      if (pendente) return;
+      pendente = true;
+      window.requestAnimationFrame(aplicar);
+    }, { passive: true });
+    aplicar();
+  }
+
+  /* — Barra de progresso da leitura — */
+  function setupProgress() {
+    if (reduceMotion) return;
+    var barra = document.createElement('div');
+    barra.className = 'progress';
+    document.body.appendChild(barra);
+
+    var pendente = false;
+    function aplicar() {
+      pendente = false;
+      var alcance = document.documentElement.scrollHeight - window.innerHeight;
+      var p = alcance > 0 ? window.pageYOffset / alcance : 0;
+      barra.style.transform = 'scaleX(' + Math.min(1, Math.max(0, p)).toFixed(4) + ')';
+    }
+    window.addEventListener('scroll', function () {
+      if (pendente) return;
+      pendente = true;
+      window.requestAnimationFrame(aplicar);
+    }, { passive: true });
+    window.addEventListener('resize', aplicar, { passive: true });
+    aplicar();
+  }
+
+  /* — Cascata: numera os irmãos de cada grade para escalonar a entrada — */
+  function setupStagger() {
+    document.querySelectorAll('.card-grid, .depo__track').forEach(function (grade) {
+      Array.prototype.forEach.call(grade.children, function (filho, i) {
+        filho.style.setProperty('--i', i);
+      });
+    });
+  }
+
+  /* — Ano do rodapé — */
+  function setupAno() {
+    var ano = document.getElementById('ano');
+    if (ano) ano.textContent = new Date().getFullYear();
+  }
+
+  /* — Vitrine viva: o que o Rafael cadastra no /painel aparece aqui ---------
+     Usa a REST do Supabase direto com fetch, em vez de carregar a biblioteca
+     supabase-js inteira só para uma leitura. A chave é a PUBLICÁVEL: a RLS
+     só expõe os produtos com disponivel = true, que é o que queremos aqui.
+     Se der qualquer erro, a seção continua escondida e o site segue igual. */
+  var SB_URL = 'https://bpncnintvpmpqfdtykms.supabase.co';
+  var SB_KEY = 'sb_publishable_vHbfOm4ncXqiq4mIDRll3Q_HtXkE4es';
+  var CAT = { iphone: 'iPhone', android: 'Android', eletro: 'Eletro' };
+
+  function esc(t) {
+    return String(t == null ? '' : t).replace(/[&<>"']/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+    });
+  }
+
+  function setupVitrine() {
+    var secao = document.getElementById('vitrine');
+    var grade = document.getElementById('vitrine-grid');
+    if (!secao || !grade || !window.fetch) return;
+
+    var url = SB_URL + '/rest/v1/produtos' +
+      '?select=nome_modelo,categoria,cor,imagem_url' +
+      '&disponivel=eq.true' +
+      '&order=destaque.desc,created_at.desc' +
+      '&limit=6';
+
+    fetch(url, { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY } })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function (itens) {
+        if (!Array.isArray(itens) || !itens.length) return;
+
+        grade.innerHTML = itens.map(function (p, i) {
+          var nome = esc(p.nome_modelo);
+          var cat = esc(CAT[p.categoria] || p.categoria || '');
+          var cor = p.cor ? esc(p.cor) : '';
+          var msg = encodeURIComponent(
+            'Olá! Vi o ' + p.nome_modelo + (p.cor ? ' ' + p.cor : '') +
+            ' no site. Ainda está disponível? [origem: vitrine]');
+          var foto = p.imagem_url
+            ? '<img class="card__photo" src="' + esc(p.imagem_url) + '" alt="' + nome +
+              '" loading="lazy" decoding="async">'
+            : '<div class="card__sem-foto" aria-hidden="true">' + cat + '</div>';
+
+          return '' +
+            '<article class="card card--tilt reveal" data-tilt style="--i:' + i + '">' +
+              '<div class="card__media card__media--square">' + foto +
+                '<span class="badge badge--vitrine">' + cat + '</span>' +
+              '</div>' +
+              '<div class="card__body">' +
+                '<h3 class="card__title card__title--xs">' + nome + '</h3>' +
+                (cor ? '<p class="card__meta">' + cor + '</p>' : '') +
+                '<a class="btn btn--wa btn--block btn--nowrap" target="_blank" rel="noopener" href="' +
+                  'https://wa.me/5585994226321?text=' + msg + '">Confira disponibilidade</a>' +
+              '</div>' +
+            '</article>';
+        }).join('');
+
+        secao.hidden = false;
+        /* os cards nasceram depois do boot: religa tilt e revelação neles */
+        setupTilt();
+        setupReveal();
+      })
+      .catch(function () { /* silêncio: a seção fica escondida */ });
+  }
+
+  setupStagger();
   setupReveal();
   setupTilt();
   setupSwatches();
   setupCarousel();
+  setupParallax();
+  setupProgress();
+  setupAno();
+  setupVitrine();
 })();

@@ -239,6 +239,11 @@ h1, h2, h3 {
   padding: clamp(56px, 12vw, 120px) var(--gutter) clamp(40px, 7vw, 72px);
 }
 
+.hero__layer {
+  position: absolute;
+  inset: -8% 0 -8% 0;   /* folga p/ o parallax não descobrir a borda */
+  will-change: transform;
+}
 .hero__bg {
   position: absolute;
   inset: 0;
@@ -302,40 +307,75 @@ h1, h2, h3 {
 
 /* — Faixa de números ------------------------------------------------------ */
 
-.stats {
-  padding: clamp(28px, 5vw, 44px) var(--gutter);
+/* — Faixa marquee: rolagem lateral infinita ------------------------------
+   Era uma barra alta com 4 blocos parados. Agora é uma faixa fina que
+   corre sozinha, sem começo nem fim (a lista é duplicada e a animação
+   anda exatamente metade da trilha, então o emendo é invisível). */
+.tick {
+  overflow: hidden;
+  padding: 0;
   border-top: 1px solid var(--rc-hairline-soft);
   border-bottom: 1px solid var(--rc-hairline-soft);
-  background: linear-gradient(180deg, rgba(216, 179, 74, .05), transparent);
+  background: linear-gradient(180deg, rgba(216, 179, 74, .07), rgba(216, 179, 74, .02));
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent);
 }
 
-.stats__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 0;
-}
-.stats__grid .stat {
-  padding: clamp(14px, 2vw, 22px) clamp(16px, 2.4vw, 30px);
-  border-left: 1px solid var(--rc-hairline-soft);
-}
-.stats__grid .stat:first-child { border-left: 0; padding-left: 0; }
-
-.stat {
+.tick__track {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  width: max-content;
+  animation: tick-run 46s linear infinite;
 }
-.stat__value {
+.tick:hover .tick__track { animation-play-state: paused; }
+
+.tick__group {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tick__item {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  padding: 13px clamp(20px, 3vw, 38px);
+  white-space: nowrap;
+  position: relative;
+}
+/* separador em losango, no lugar de borda dura */
+.tick__item::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  transform: translateY(-50%) rotate(45deg);
+  background: rgba(216, 179, 74, .42);
+}
+
+.tick__item strong {
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: clamp(30px, 4vw, 40px);
-  line-height: 1;
-  letter-spacing: -.02em;
+  font-size: 17px;
+  letter-spacing: -.015em;
   color: var(--rc-gold);
 }
-.stat__label {
-  font-size: 14px;
-  color: var(--color-neutral-400);
+.tick__item span {
+  font-size: 13.5px;
+  color: var(--color-neutral-500);
+}
+
+@keyframes tick-run {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tick__track { animation: none; }
+  .tick { -webkit-mask-image: none; mask-image: none; overflow-x: auto; }
 }
 
 /* — Grades de cards ------------------------------------------------------- */
@@ -664,48 +704,89 @@ h1, h2, h3 {
 
 /* — Rodapé ---------------------------------------------------------------- */
 
+/* — Rodapé ---------------------------------------------------------------
+   Era uma linha só (marca + 3 links soltos). Agora tem colunas, navegação
+   e barra inferior — é a última coisa que o cliente vê antes de decidir. */
 .site-footer {
-  padding: clamp(32px, 5vw, 56px) var(--gutter) calc(clamp(32px, 5vw, 56px) + 72px);
-  border-top: 1px solid var(--rc-hairline-soft);
+  position: relative;
+  border-top: 1px solid var(--rc-hairline);
+  background:
+    radial-gradient(120% 100% at 50% 0%, rgba(216, 179, 74, .07), transparent 62%),
+    var(--rc-surface-deep);
+  padding: clamp(40px, 6vw, 68px) var(--gutter) 0;
 }
 
-.site-footer__inner {
+.site-footer__top {
   max-width: var(--maxw);
   margin: 0 auto;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
+  display: grid;
+  grid-template-columns: 1.5fr .8fr 1fr;
+  gap: clamp(28px, 4vw, 56px);
+  padding-bottom: clamp(28px, 4vw, 44px);
 }
 
-.site-footer__brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
+.site-footer__brand { display: flex; align-items: flex-start; gap: var(--space-6); }
 .site-footer__brand img {
-  width: 46px;
-  height: 46px;
+  width: 56px;
+  height: 56px;
+  flex: none;
   border-radius: 50%;
   object-fit: cover;
-  border: 1px solid rgba(216, 179, 74, .4);
+  border: 1px solid rgba(216, 179, 74, .45);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .55);
 }
-.site-footer__brand-text {
-  display: flex;
-  flex-direction: column;
+.site-footer__brand-text { display: flex; flex-direction: column; gap: 8px; }
+.brand__name {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 19px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--rc-title);
 }
 .site-footer__tagline {
-  font-size: 13px;
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: 42ch;
+  color: var(--color-neutral-500);
+}
+
+.site-footer__col { display: flex; flex-direction: column; gap: 11px; }
+.site-footer__ttl {
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .19em;
+  text-transform: uppercase;
+  color: var(--rc-gold);
+  margin: 0 0 4px;
+}
+.site-footer__col a {
+  font-size: 14.5px;
+  color: var(--color-neutral-400);
+  width: fit-content;
+  transition: color .25s ease, transform .25s ease;
+}
+.site-footer__col a:hover { color: var(--rc-yellow); transform: translateX(3px); }
+.site-footer__wa { display: inline-flex; align-items: center; gap: 8px; }
+.site-footer__wa svg { fill: currentColor; }
+.site-footer__note { margin: 4px 0 0; font-size: 13px; color: var(--color-neutral-600); }
+
+.site-footer__bar {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 18px 0 22px;
+  border-top: 1px solid var(--rc-hairline-soft);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px var(--space-8);
+  justify-content: space-between;
+  font-size: 12.5px;
   color: var(--color-neutral-600);
 }
 
-.site-footer__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-8);
-  font-size: 14px;
-  color: var(--color-neutral-500);
+@media (max-width: 820px) {
+  .site-footer__top { grid-template-columns: 1fr; gap: 30px; }
 }
 
 /* — Botão flutuante do WhatsApp ------------------------------------------- */
@@ -850,3 +931,176 @@ h1, h2, h3 {
   .card:hover, .repair-card:hover { transform: none; }
 }
 .repair-card { transition: border-color .35s ease, transform .35s ease, box-shadow .35s ease; }
+
+/* ═══════════════ Hero: profundidade e prova ═══════════════ */
+
+/* brilho dourado atrás do texto, separando-o da foto */
+.hero__glow {
+  position: absolute;
+  left: -10%;
+  bottom: -22%;
+  width: min(760px, 78vw);
+  height: min(760px, 78vw);
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(216, 179, 74, .16) 0%, rgba(216, 179, 74, .05) 42%, transparent 68%);
+}
+
+.hero__inner { z-index: 2; }
+
+/* o brasão ganha volume em vez de ser um disco chapado */
+.hero__crest {
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, .7),
+    0 0 0 6px rgba(216, 179, 74, .07),
+    inset 0 1px 0 rgba(255, 255, 255, .18);
+  transition: transform .5s cubic-bezier(.22,.61,.36,1);
+}
+.hero:hover .hero__crest { transform: translateY(-3px) rotate(-2deg); }
+
+.hero__trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.hero__trust li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 15px 8px 12px;
+  font-size: 13.5px;
+  color: var(--color-neutral-300);
+  border: 1px solid var(--rc-hairline);
+  border-radius: 100px;
+  background: rgba(255, 255, 255, .035);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.hero__trust li::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rc-gold);
+  box-shadow: 0 0 9px var(--rc-gold);
+}
+
+/* indicador de rolagem */
+.hero__cue {
+  position: absolute;
+  right: var(--gutter);
+  bottom: clamp(22px, 4vw, 40px);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11.5px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--color-neutral-500);
+  transition: color .3s ease;
+}
+.hero__cue:hover { color: var(--rc-yellow); }
+.hero__cue-line {
+  width: 52px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--rc-gold));
+  position: relative;
+  overflow: hidden;
+}
+.hero__cue-line::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--rc-yellow);
+  animation: cue-run 2.4s ease-in-out infinite;
+}
+@keyframes cue-run {
+  0%   { transform: translateX(-100%); }
+  60%,
+  100% { transform: translateX(100%); }
+}
+@media (max-width: 720px) { .hero__cue { display: none; } }
+
+/* ═══════════════ Profundidade e rolagem ═══════════════ */
+
+/* escala de elevação (Dimensional Layering) */
+:root {
+  --elev-1: 0 2px 6px rgba(0, 0, 0, .35);
+  --elev-2: 0 10px 24px -8px rgba(0, 0, 0, .55);
+  --elev-3: 0 20px 46px -18px rgba(0, 0, 0, .75);
+  --elev-4: 0 34px 70px -22px rgba(0, 0, 0, .85);
+}
+
+/* barra de progresso da leitura */
+.progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, var(--rc-gold), var(--rc-yellow));
+  z-index: 60;
+  pointer-events: none;
+}
+
+/* revelação com deslocamento — entra de baixo, não só em fade */
+.reveal.is-armed {
+  opacity: 0;
+  transform: translate3d(0, 26px, 0);
+}
+.reveal.is-revealed {
+  opacity: 1;
+  transform: none;
+  transition: opacity .75s ease, transform .75s cubic-bezier(.22,.61,.36,1);
+}
+
+/* cascata: cada card entra logo depois do anterior */
+.stack__item.is-armed,
+.pf-card.is-armed { transition-delay: calc(var(--i, 0) * 80ms); }
+.stack__item.is-revealed,
+.pf-card.is-revealed { transition-delay: calc(var(--i, 0) * 80ms); }
+
+/* o tilt agora move a foto num plano à frente do card */
+[data-tilt] { transform-style: preserve-3d; }
+[data-tilt] .card__media,
+[data-tilt] .vitrine__media { transform: translateZ(26px); transform-style: preserve-3d; }
+[data-tilt] .card__body { transform: translateZ(12px); }
+
+/* imagem respira ao passar o mouse */
+.card__media { overflow: hidden; }
+.card__photo { transition: transform .7s cubic-bezier(.22,.61,.36,1); }
+.card:hover .card__photo { transform: scale(1.045); }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal.is-armed { opacity: 1; transform: none; }
+  .hero__cue-line::after { animation: none; }
+  .card:hover .card__photo { transform: none; }
+  .progress { display: none; }
+}
+
+/* — Vitrine viva (alimentada pelo /painel) — */
+.badge--vitrine {
+  background: rgba(11, 12, 18, .78);
+  color: var(--rc-gold);
+  border: 1px solid var(--rc-hairline);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.card__sem-foto {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 190px;
+  font-family: var(--font-heading);
+  font-size: 15px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--color-neutral-600);
+  background: linear-gradient(135deg, rgba(216, 179, 74, .07), rgba(255, 255, 255, .015));
+}

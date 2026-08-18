@@ -82,9 +82,12 @@
 <main>
 
   <section class="hero" id="topo">
-    <img class="hero__bg lighten" src="assets/img/produto-iphone12pro-duo.jpg" alt="iPhone 12 Pro grafite e dourado na Rico Cell" fetchpriority="high">
+    <div class="hero__layer" data-parallax="0.18">
+      <img class="hero__bg lighten" src="assets/img/produto-iphone12pro-duo.jpg" alt="iPhone 12 Pro grafite e dourado na Rico Cell" fetchpriority="high">
+    </div>
     <div class="hero__scrim"></div>
     <div class="hero__scrim hero__scrim--bottom"></div>
+    <div class="hero__glow" aria-hidden="true"></div>
     <div class="hero__inner">
       <img class="hero__crest" src="assets/img/logo-rico-cell.jpg" alt="Brasão Rico Cell" width="92" height="92">
       <span class="eyebrow">Fortaleza / CE · Atendimento 100% digital</span>
@@ -97,27 +100,52 @@
         </a>
         <a class="btn btn--outline btn--lg" href="#iphones">Ver iPhones disponíveis</a>
       </div>
+      <ul class="hero__trust">
+        <li>Aparelhos conferidos um por um</li>
+        <li>Lacrados, com garantia</li>
+        <li>Entrega em Fortaleza</li>
+      </ul>
+    </div>
+    <a class="hero__cue" href="#iphones" aria-label="Ver os aparelhos">
+      <span class="hero__cue-line" aria-hidden="true"></span>
+      <span class="hero__cue-txt">Ver aparelhos</span>
+    </a>
+  </section>
+
+  <section class="tick" aria-label="Por que a Rico Cell">
+    <div class="tick__track">
+      <ul class="tick__group">
+        <li class="tick__item"><strong>+5 anos</strong><span>de loja em Fortaleza</span></li>
+        <li class="tick__item"><strong>+2.000</strong><span>clientes atendidos</span></li>
+        <li class="tick__item"><strong>Assistência</strong><span>técnica especializada</span></li>
+        <li class="tick__item"><strong>Direto</strong><span>com o dono da loja</span></li>
+        <li class="tick__item"><strong>Lacrados</strong><span>com garantia</span></li>
+        <li class="tick__item"><strong>Entrega</strong><span>em Fortaleza</span></li>
+        <li class="tick__item"><strong>100% digital</strong><span>atendimento pelo WhatsApp</span></li>
+      </ul>
+      <ul class="tick__group" aria-hidden="true">
+        <li class="tick__item"><strong>+5 anos</strong><span>de loja em Fortaleza</span></li>
+        <li class="tick__item"><strong>+2.000</strong><span>clientes atendidos</span></li>
+        <li class="tick__item"><strong>Assistência</strong><span>técnica especializada</span></li>
+        <li class="tick__item"><strong>Direto</strong><span>com o dono da loja</span></li>
+        <li class="tick__item"><strong>Lacrados</strong><span>com garantia</span></li>
+        <li class="tick__item"><strong>Entrega</strong><span>em Fortaleza</span></li>
+        <li class="tick__item"><strong>100% digital</strong><span>atendimento pelo WhatsApp</span></li>
+      </ul>
     </div>
   </section>
 
-  <section class="stats reveal">
-    <div class="container stats__grid">
-      <div class="stat">
-        <span class="stat__value">+5 anos</span>
-        <span class="stat__label">de loja em Fortaleza</span>
+  <!-- Vitrine alimentada pelo /painel. Nasce escondida: se o Supabase não
+       responder ou não houver produto disponível, a seção simplesmente não
+       aparece e o resto da página segue igual. -->
+  <section class="section section--tight" id="vitrine" hidden>
+    <div class="container section__inner">
+      <div class="section-head">
+        <span class="eyebrow">Atualizado pela loja</span>
+        <h2 class="section-title section-title--sm">Chegou na vitrine</h2>
+        <p class="section-lead section-lead--sm">O que o Rafael cadastrou como disponível agora. Fale no WhatsApp para confirmar antes de vir.</p>
       </div>
-      <div class="stat">
-        <span class="stat__value">+2.000</span>
-        <span class="stat__label">clientes atendidos</span>
-      </div>
-      <div class="stat">
-        <span class="stat__value">Assistência</span>
-        <span class="stat__label">técnica especializada</span>
-      </div>
-      <div class="stat">
-        <span class="stat__value">Direto</span>
-        <span class="stat__label">com o dono da loja</span>
-      </div>
+      <div class="card-grid card-grid--compact" id="vitrine-grid"></div>
     </div>
   </section>
 
@@ -396,19 +424,38 @@
 </main>
 
 <footer class="site-footer">
-  <div class="site-footer__inner">
+  <div class="site-footer__top">
     <div class="site-footer__brand">
-      <img src="assets/img/logo-rico-cell.jpg" alt="Rico Cell" width="46" height="46" loading="lazy">
+      <img src="assets/img/logo-rico-cell.jpg" alt="Rico Cell" width="56" height="56" loading="lazy">
       <div class="site-footer__brand-text">
         <span class="brand__name">Rico Cell</span>
-        <span class="site-footer__tagline">Celulares, eletrônicos e assistência técnica</span>
+        <span class="site-footer__tagline">Celulares, eletrônicos e assistência técnica em Fortaleza / CE. Mais de 5 anos de loja, atendimento 100% digital.</span>
       </div>
     </div>
-    <div class="site-footer__links">
-      <a href="https://wa.me/5585994226321?text=Ol%C3%A1!%20Vim%20do%20site%20da%20Rico%20Cell.%20%5Borigem%3A%20rodape%5D" target="_blank" rel="noopener">WhatsApp (85) 99422-6321</a>
-      <a href="https://instagram.com/rico_cellshop" target="_blank" rel="noopener">Instagram</a>
-      <span>Fortaleza / CE · Atendimento 100% digital</span>
+
+    <nav class="site-footer__col" aria-label="Navegar">
+      <h3 class="site-footer__ttl">Navegar</h3>
+      <a href="#iphones">iPhones</a>
+      <a href="#eletronicos">Eletrônicos</a>
+      <a href="#assistencia">Assistência técnica</a>
+      <a href="#depoimentos">Clientes</a>
+      <a href="#sobre">Sobre a loja</a>
+    </nav>
+
+    <div class="site-footer__col">
+      <h3 class="site-footer__ttl">Falar com a loja</h3>
+      <a class="site-footer__wa" href="https://wa.me/5585994226321?text=Ol%C3%A1!%20Vim%20do%20site%20da%20Rico%20Cell.%20%5Borigem%3A%20rodape%5D" target="_blank" rel="noopener">
+        <svg width="16" height="16" aria-hidden="true"><use href="#i-whatsapp"></use></svg>
+        (85) 99422-6321
+      </a>
+      <a href="https://instagram.com/rico_cellshop" target="_blank" rel="noopener">@rico_cellshop</a>
+      <p class="site-footer__note">Respondemos no horário comercial.</p>
     </div>
+  </div>
+
+  <div class="site-footer__bar">
+    <span>&copy; <span id="ano">2026</span> Rico Cell · Fortaleza / CE</span>
+    <span class="site-footer__by">Site por MX Digital</span>
   </div>
 </footer>
 
