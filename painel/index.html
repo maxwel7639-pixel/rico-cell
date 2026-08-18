@@ -123,6 +123,12 @@
 
       <div id="pnl-dash-cards" class="pnl-dash-grid" aria-busy="true"></div>
 
+      <div class="pnl-chart-card pnl-interesse-card">
+        <h3 class="pnl-chart-card__title">Mais procurados no site</h3>
+        <p class="pnl-interesse-sub">Cliques em “Confira disponibilidade” e nos botões de WhatsApp, no período escolhido.</p>
+        <ol id="pnl-interesse" class="pnl-interesse"></ol>
+      </div>
+
       <div id="pnl-dash-charts" class="pnl-dash-charts">
         <div class="pnl-chart-card">
           <h3 class="pnl-chart-card__title">Gasto por dia</h3>
@@ -268,6 +274,42 @@
           <span>Qual cor?</span>
           <input type="text" id="pnl-cor-outra" placeholder="Digite a cor">
         </label>
+
+        <p class="pnl-form-sep"><span>Ficha técnica</span></p>
+
+        <div class="pnl-field-grid">
+          <label class="pnl-field">
+            <span>Preço <em>(opcional)</em></span>
+            <input type="number" id="pnl-preco" inputmode="decimal" step="0.01" min="0" placeholder="Ex.: 2400,00">
+          </label>
+          <label class="pnl-field">
+            <span>Armazenamento</span>
+            <input type="text" id="pnl-armazenamento" placeholder="Ex.: 128 GB">
+          </label>
+        </div>
+
+        <div class="pnl-field-grid">
+          <label class="pnl-field">
+            <span>Condição</span>
+            <select id="pnl-condicao">
+              <option value="">Não informar</option>
+              <option value="lacrado">Lacrado</option>
+              <option value="seminovo">Seminovo</option>
+              <option value="usado">Usado</option>
+            </select>
+          </label>
+          <label class="pnl-field">
+            <span>Garantia (meses)</span>
+            <input type="number" id="pnl-garantia" inputmode="numeric" step="1" min="0" max="60" placeholder="Ex.: 3">
+          </label>
+        </div>
+
+        <label class="pnl-field" id="pnl-bateria-field" hidden>
+          <span>Saúde da bateria (%)</span>
+          <input type="number" id="pnl-bateria" inputmode="numeric" step="1" min="0" max="100" placeholder="Ex.: 89">
+        </label>
+
+        <p class="pnl-form-hint">Deixe em branco o que não quiser mostrar. Sem preço, o site escreve “Sob consulta”.</p>
 
         <div class="pnl-toggle-field">
           <button type="button" id="pnl-form-disponivel" class="pnl-toggle-btn pnl-toggle-btn--row">

@@ -62,7 +62,7 @@
       'pnl-sidebar', 'pnl-sidebar-toggle', 'pnl-side-btn-dashboard', 'pnl-side-btn-produtos', 'pnl-sidebar-logout',
       'pnl-tab-dashboard', 'pnl-tab-produtos', 'pnl-tab-btn-dashboard', 'pnl-tab-btn-produtos',
       'pnl-period', 'pnl-dash-demo', 'pnl-dash-error', 'pnl-dash-cards', 'pnl-dash-charts',
-      'pnl-chart-gasto', 'pnl-chart-cliques', 'pnl-chart-categorias',
+      'pnl-chart-gasto', 'pnl-chart-cliques', 'pnl-chart-categorias', 'pnl-interesse',
       'pnl-summary', 'pnl-warning', 'pnl-produtos-toolbar', 'pnl-filters', 'pnl-busca',
       'pnl-bulk-bar', 'pnl-bulk-count', 'pnl-bulk-excluir', 'pnl-bulk-limpar',
       'pnl-produtos-lista', 'pnl-grid', 'pnl-tabela', 'pnl-tabela-body', 'pnl-tabela-check-all',
@@ -70,6 +70,8 @@
       'pnl-novo', 'pnl-modal-backdrop', 'pnl-modal-title', 'pnl-modal-close',
       'pnl-form', 'pnl-form-error', 'pnl-photo-field', 'pnl-foto', 'pnl-photo-preview', 'pnl-photo-caption',
       'pnl-nome', 'pnl-categoria', 'pnl-cor-select', 'pnl-cor-outra-field', 'pnl-cor-outra',
+      'pnl-preco', 'pnl-armazenamento', 'pnl-condicao', 'pnl-garantia',
+      'pnl-bateria', 'pnl-bateria-field',
       'pnl-form-disponivel', 'pnl-form-destaque', 'pnl-form-submit',
       'pnl-confirm-backdrop', 'pnl-confirm-title', 'pnl-confirm-text', 'pnl-confirm-cancel', 'pnl-confirm-delete',
       'pnl-toast'
@@ -80,6 +82,28 @@
     return String(str == null ? '' : str).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
+  }
+
+  var BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+  var CONDICAO = { lacrado: 'Lacrado', seminovo: 'Seminovo', usado: 'Usado' };
+
+  function precoHtml(p) {
+    return p.preco != null
+      ? '<span class="pnl-preco">' + escapeHtml(BRL.format(p.preco)) + '</span>'
+      : '<span class="pnl-preco pnl-preco--vazio">Sob consulta</span>';
+  }
+
+  /* Etiquetas da ficha técnica — só entra o que foi preenchido. */
+  function specHtml(p) {
+    var itens = [];
+    if (p.armazenamento) itens.push(p.armazenamento);
+    if (p.condicao) itens.push(CONDICAO[p.condicao] || p.condicao);
+    if (p.bateria_pct != null) itens.push('Bateria ' + p.bateria_pct + '%');
+    if (p.garantia_meses != null) itens.push(p.garantia_meses + ' ' + (p.garantia_meses === 1 ? 'mês' : 'meses') + ' de garantia');
+    if (!itens.length) return '';
+    return '<div class="pnl-spec">' + itens.map(function (t) {
+      return '<span>' + escapeHtml(t) + '</span>';
+    }).join('') + '</div>';
   }
 
   function categoriaRotulo(valor) {
@@ -260,6 +284,55 @@
     });
   }
 
+  /* — Mais procurados: agrega a tabela `cliques` do periodo escolhido.
+     Vem do proprio Supabase (nao do Meta), entao independe da conta de
+     anuncios estar configurada. */
+  async function carregarInteresse() {
+    var alvo = el['pnl-interesse'];
+    if (!alvo) return;
+
+    var dias = state.dashPeriodo === '30d' ? 30 : 7;
+    var desde = new Date(Date.now() - dias * 864e5).toISOString();
+
+    var res = await sb
+      .from('cliques')
+      .select('origem, produto_id, produtos(nome_modelo)')
+      .gte('created_at', desde)
+      .limit(2000);
+
+    if (res.error) {
+      alvo.innerHTML = '<li class="pnl-interesse__vazio">Não foi possível carregar os cliques.</li>';
+      return;
+    }
+
+    var linhas = res.data || [];
+    if (!linhas.length) {
+      alvo.innerHTML = '<li class="pnl-interesse__vazio">Nenhum clique registrado ainda neste período.</li>';
+      return;
+    }
+
+    var contagem = {};
+    linhas.forEach(function (c) {
+      var nome = (c.produtos && c.produtos.nome_modelo) || c.origem || 'geral';
+      contagem[nome] = (contagem[nome] || 0) + 1;
+    });
+
+    var ordenado = Object.keys(contagem)
+      .map(function (k) { return { nome: k, n: contagem[k] }; })
+      .sort(function (a, b) { return b.n - a.n; })
+      .slice(0, 8);
+
+    var maior = ordenado[0].n;
+    alvo.innerHTML = ordenado.map(function (item) {
+      var pct = Math.round((item.n / maior) * 100);
+      return '<li class="pnl-interesse__item">' +
+          '<span class="pnl-interesse__nome">' + escapeHtml(item.nome) + '</span>' +
+          '<span class="pnl-interesse__barra"><i style="width:' + pct + '%"></i></span>' +
+          '<span class="pnl-interesse__n">' + item.n + '</span>' +
+        '</li>';
+    }).join('');
+  }
+
   async function carregarDashboard() {
     /* Guarda por número de pedido: cliques rápidos no seletor de período
        podem fazer duas chamadas resolverem fora de ordem — só a mais
@@ -282,10 +355,13 @@
       renderDashboard(dados);
       state.dashDados = dados;
       renderCharts(dados);
+      carregarInteresse();
     } catch (error) {
       if (meuPedido !== state.dashPedidoId) return;
       el['pnl-dash-error'].hidden = false;
       el['pnl-dash-error'].textContent = 'Não foi possível carregar as métricas de anúncios.';
+      /* o bloco de interesse não depende do Meta — carrega de qualquer jeito */
+      carregarInteresse();
     } finally {
       if (meuPedido === state.dashPedidoId) el['pnl-dash-cards'].removeAttribute('aria-busy');
     }
@@ -383,7 +459,9 @@
               '<div class="pnl-card__tags">' +
                 '<span class="pnl-tag">' + escapeHtml(categoriaRotulo(p.categoria)) + '</span>' +
                 '<span class="pnl-card__color">' + escapeHtml(p.cor) + '</span>' +
+                precoHtml(p) +
               '</div>' +
+              specHtml(p) +
             '</div>' +
             '<div class="pnl-card__actions">' + botoesAcaoHtml(p) + '</div>' +
           '</div>' +
@@ -540,6 +618,14 @@
 
   /* — Modal adicionar/editar/duplicar --------------------------------------- */
 
+  /* Saúde da bateria só faz sentido em aparelho que já foi usado. */
+  function atualizarCampoBateria() {
+    var c = el['pnl-condicao'].value;
+    var mostra = c === 'seminovo' || c === 'usado';
+    el['pnl-bateria-field'].hidden = !mostra;
+    if (!mostra) el['pnl-bateria'].value = '';
+  }
+
   function trilho(botao, on) {
     botao.querySelector('.pnl-toggle').classList.toggle('is-on', on);
     botao.dataset.on = on ? '1' : '0';
@@ -559,6 +645,13 @@
     el['pnl-cor-select'].value = produtoBase ? (corConhecida ? corAtual : (corAtual ? 'Outra' : '')) : '';
     el['pnl-cor-outra'].value = produtoBase && !corConhecida ? corAtual : '';
     el['pnl-cor-outra-field'].hidden = el['pnl-cor-select'].value !== 'Outra';
+
+    el['pnl-preco'].value         = produtoBase && produtoBase.preco != null ? produtoBase.preco : '';
+    el['pnl-armazenamento'].value = produtoBase ? (produtoBase.armazenamento || '') : '';
+    el['pnl-condicao'].value      = produtoBase ? (produtoBase.condicao || '') : '';
+    el['pnl-garantia'].value      = produtoBase && produtoBase.garantia_meses != null ? produtoBase.garantia_meses : '';
+    el['pnl-bateria'].value       = produtoBase && produtoBase.bateria_pct != null ? produtoBase.bateria_pct : '';
+    atualizarCampoBateria();
 
     trilho(el['pnl-form-disponivel'], produtoBase ? produtoBase.disponivel : true);
     trilho(el['pnl-form-destaque'], produtoBase ? produtoBase.destaque : false);
@@ -636,10 +729,27 @@
     var corFinal = corSel === 'Outra' ? el['pnl-cor-outra'].value.trim() : corSel;
     if (!corFinal) { el['pnl-cor-select'].focus(); return; }
 
+    /* campo em branco vira null: o site trata ausência, não string vazia */
+    function numOuNulo(v) {
+      var t = String(v == null ? '' : v).trim().replace(',', '.');
+      if (!t) return null;
+      var n = Number(t);
+      return isFinite(n) ? n : null;
+    }
+    function txtOuNulo(v) {
+      var t = String(v == null ? '' : v).trim();
+      return t || null;
+    }
+
     var payload = {
       nome_modelo: nome,
       categoria: el['pnl-categoria'].value,
       cor: corFinal,
+      preco: numOuNulo(el['pnl-preco'].value),
+      armazenamento: txtOuNulo(el['pnl-armazenamento'].value),
+      condicao: txtOuNulo(el['pnl-condicao'].value),
+      garantia_meses: numOuNulo(el['pnl-garantia'].value),
+      bateria_pct: numOuNulo(el['pnl-bateria'].value),
       disponivel: el['pnl-form-disponivel'].dataset.on === '1',
       destaque: el['pnl-form-destaque'].dataset.on === '1'
     };
@@ -800,6 +910,8 @@
     el['pnl-modal-backdrop'].addEventListener('click', function (ev) {
       if (ev.target === el['pnl-modal-backdrop']) fecharModal();
     });
+
+    el['pnl-condicao'].addEventListener('change', atualizarCampoBateria);
 
     el['pnl-cor-select'].addEventListener('change', function () {
       el['pnl-cor-outra-field'].hidden = el['pnl-cor-select'].value !== 'Outra';

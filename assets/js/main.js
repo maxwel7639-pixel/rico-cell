@@ -174,13 +174,38 @@
     });
   }
 
+  var BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+  var CONDICAO = { lacrado: 'Lacrado', seminovo: 'Seminovo', usado: 'Usado' };
+
+  /* Só entra na ficha o que a loja preencheu. Sem preço vira "Sob consulta"
+     — o site continua conversando pelo WhatsApp, como sempre foi. */
+  function fichaHtml(p) {
+    var itens = [];
+    if (p.armazenamento) itens.push(p.armazenamento);
+    if (p.condicao) itens.push(CONDICAO[p.condicao] || p.condicao);
+    if (p.bateria_pct != null) itens.push('Bateria ' + p.bateria_pct + '%');
+    if (p.garantia_meses != null) {
+      itens.push(p.garantia_meses + (p.garantia_meses === 1 ? ' mês' : ' meses') + ' de garantia');
+    }
+    if (!itens.length) return '';
+    return '<ul class="ficha">' + itens.map(function (t) {
+      return '<li>' + esc(t) + '</li>';
+    }).join('') + '</ul>';
+  }
+
+  function precoHtml(p) {
+    return p.preco != null
+      ? '<p class="preco">' + esc(BRL.format(p.preco)) + '</p>'
+      : '<p class="preco preco--consulta">Sob consulta</p>';
+  }
+
   function setupVitrine() {
     var secao = document.getElementById('vitrine');
     var grade = document.getElementById('vitrine-grid');
     if (!secao || !grade || !window.fetch) return;
 
     var url = SB_URL + '/rest/v1/produtos' +
-      '?select=nome_modelo,categoria,cor,imagem_url' +
+      '?select=id,nome_modelo,categoria,cor,imagem_url,preco,armazenamento,condicao,bateria_pct,garantia_meses' +
       '&disponivel=eq.true' +
       '&order=destaque.desc,created_at.desc' +
       '&limit=6';
@@ -210,7 +235,10 @@
               '<div class="card__body">' +
                 '<h3 class="card__title card__title--xs">' + nome + '</h3>' +
                 (cor ? '<p class="card__meta">' + cor + '</p>' : '') +
-                '<a class="btn btn--wa btn--block btn--nowrap" target="_blank" rel="noopener" href="' +
+                precoHtml(p) +
+                fichaHtml(p) +
+                '<a class="btn btn--wa btn--block btn--nowrap" target="_blank" rel="noopener"' +
+                  ' data-produto="' + esc(p.id) + '" data-origem="vitrine" href="' +
                   'https://wa.me/5585994226321?text=' + msg + '">Confira disponibilidade</a>' +
               '</div>' +
             '</article>';
@@ -224,6 +252,48 @@
       .catch(function () { /* silêncio: a seção fica escondida */ });
   }
 
+  /* — Registro de interesse ------------------------------------------------
+     Cada clique num botão de WhatsApp vira uma linha em `cliques`, para o
+     Rafael ver no painel qual aparelho as pessoas mais querem. A RLS deixa
+     o visitante só INSERIR — ninguém anônimo consegue ler esses números.
+     É disparo e esquece: se falhar, o link do WhatsApp abre do mesmo jeito. */
+  function setupInteresse() {
+    if (!window.fetch) return;
+
+    document.addEventListener('click', function (ev) {
+      var a = ev.target.closest && ev.target.closest('a[href*="wa.me/"]');
+      if (!a) return;
+
+      var origem = a.dataset.origem;
+      if (!origem) {
+        /* os links fixos já carregam [origem: x] no texto da mensagem */
+        var m = decodeURIComponent(a.getAttribute('href') || '').match(/\[origem:\s*([^\]]+)\]/);
+        origem = m ? m[1].trim() : 'geral';
+      }
+
+      var corpo = { origem: origem.slice(0, 60) };
+      if (a.dataset.produto) corpo.produto_id = a.dataset.produto;
+
+      /* fetch com keepalive: sobrevive à navegação para o WhatsApp e ainda
+         manda os cabeçalhos. sendBeacon NÃO serve aqui — ele não envia
+         cabeçalho, e mandar JSON pela query dispara preflight de CORS que o
+         beacon não consegue completar (falha calada com ERR_FAILED). */
+      try {
+        fetch(SB_URL + '/rest/v1/cliques', {
+          method: 'POST',
+          keepalive: true,
+          body: JSON.stringify(corpo),
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: SB_KEY,
+            Authorization: 'Bearer ' + SB_KEY,
+            Prefer: 'return=minimal'
+          }
+        }).catch(function () {});
+      } catch (e) { /* nunca atrapalha o clique */ }
+    }, true);
+  }
+
   setupStagger();
   setupReveal();
   setupTilt();
@@ -233,4 +303,5 @@
   setupProgress();
   setupAno();
   setupVitrine();
+  setupInteresse();
 })();

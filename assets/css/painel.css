@@ -1175,3 +1175,106 @@
 @media (prefers-reduced-motion: reduce) {
   .pnl-sheet { animation: none; }
 }
+
+/* — Ficha técnica no formulário — */
+.pnl-form-sep {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 6px 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .17em;
+  text-transform: uppercase;
+  color: var(--rc-gold);
+}
+.pnl-form-sep::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--rc-hairline);
+}
+.pnl-field span em {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--color-neutral-600);
+}
+.pnl-form-hint {
+  margin: -4px 0 2px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-neutral-600);
+}
+
+/* — Ficha na listagem de produtos — */
+.pnl-spec {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.pnl-spec span {
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 100px;
+  border: 1px solid var(--rc-hairline-soft);
+  color: var(--color-neutral-400);
+  background: rgba(255, 255, 255, .03);
+}
+.pnl-preco {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: -.02em;
+  color: var(--rc-gold);
+  font-variant-numeric: tabular-nums;
+}
+.pnl-preco--vazio { color: var(--color-neutral-600); font-weight: 400; font-size: 13px; }
+
+/* — Mais procurados no site — */
+.pnl-interesse-card { margin-bottom: 14px; }
+.pnl-interesse-sub {
+  margin: -8px 0 16px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-neutral-600);
+}
+.pnl-interesse { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.pnl-interesse__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px auto;
+  align-items: center;
+  gap: 12px;
+}
+.pnl-interesse__nome {
+  font-size: 13.5px;
+  color: var(--rc-title);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pnl-interesse__barra {
+  height: 6px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, .06);
+  overflow: hidden;
+}
+.pnl-interesse__barra i {
+  display: block;
+  height: 100%;
+  border-radius: 100px;
+  background: linear-gradient(90deg, rgba(216, 179, 74, .55), var(--rc-gold));
+}
+.pnl-interesse__n {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--rc-gold);
+  font-variant-numeric: tabular-nums;
+  min-width: 2ch;
+  text-align: right;
+}
+.pnl-interesse__vazio { font-size: 13px; color: var(--color-neutral-600); }
+@media (max-width: 520px) {
+  .pnl-interesse__item { grid-template-columns: minmax(0, 1fr) 56px auto; }
+}
