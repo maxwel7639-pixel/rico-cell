@@ -77,11 +77,37 @@ números vêm de `GET /api/ads-metrics?period=7d|30d`, uma Vercel Function
    **modo demonstração**: a API devolve números fictícios (mas plausíveis)
    com `demo: true`, e o dashboard mostra o aviso "Mostrando dados de
    demonstração — conecte a conta de anúncios pra ver os números reais".
-4. Com as duas configuradas, a API consulta a Graph API do Meta
-   (`/{ad_account_id}/insights`) e devolve os números reais com `demo: false`.
-   Se a consulta ao Meta falhar (token expirado, permissão faltando, etc.),
-   a API responde `502` — o token de acesso nunca é exposto na resposta nem
-   em log.
+4. Com as duas configuradas, a API consulta a Graph API do Meta com
+   `time_increment=1` (uma linha por dia) e devolve os números reais —
+   totais e série diária — com `demo: false`. Se a consulta ao Meta falhar
+   (token expirado, permissão faltando, etc.), a API responde `502` — o
+   token de acesso nunca é exposto na resposta nem em log.
+5. O gráfico de rosca "Resultados por categoria" (iPhone/Android/Eletro) é
+   sempre uma divisão proporcional ilustrativa (55/30/15%) — o Meta Ads não
+   expõe atribuição por categoria interna de produto nos insights de conta,
+   então esse gráfico específico não fica 100% real mesmo depois de
+   configurar as credenciais.
+
+## Layout desktop (`/painel`, ≥1024px)
+
+A partir de 1024px de largura o painel troca as abas horizontais por uma
+barra lateral fixa (Dashboard/Produtos com ícones) e ganha:
+
+- **Dashboard:** os 6 cards de métrica em 3 colunas, mais 3 gráficos
+  (Chart.js via CDN — `cdn.jsdelivr.net/npm/chart.js@4`): linha de gasto por
+  dia, barras de cliques/impressões, e a rosca de resultados por categoria.
+  Os dois primeiros usam a `serieDiaria` que a API devolve.
+- **Produtos:** seletor Grade/Tabela, busca por nome, seleção múltipla com
+  ações em lote (disponível/destaque/excluir via `.in('id', [...])` no
+  Supabase), formulário em painel lateral (drawer) em vez de bottom sheet, e
+  upload de foto por arrastar-e-soltar além do clique tradicional.
+
+Abaixo de 1024px nada disso existe — é a tela mobile original (abas,
+cards, bottom sheet). Os elementos novos ficam com `display:none` por
+padrão e só aparecem dentro do `@media (min-width: 1024px)` de
+`assets/css/painel.css`; uma regra de segurança adicional força a
+visualização em grade (nunca tabela) abaixo do breakpoint, mesmo que o
+usuário tenha deixado a tabela selecionada numa sessão redimensionada.
 
 ## Publicar
 

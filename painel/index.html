@@ -10,7 +10,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="../assets/css/styles.css">
 <link rel="stylesheet" href="../assets/css/painel.css">
 </head>
@@ -63,6 +63,45 @@
     </button>
   </header>
 
+  <!-- ═══ Sidebar desktop (≥1024px) ═══ -->
+  <nav id="pnl-sidebar" class="pnl-sidebar" aria-label="Navegação do painel">
+    <div class="pnl-sidebar__brand">
+      <img class="pnl-sidebar__mark" src="../assets/img/logo-rico-cell.jpg" alt="Rico Cell">
+      <span class="pnl-sidebar__name">Painel</span>
+    </div>
+
+    <button type="button" id="pnl-sidebar-toggle" class="pnl-sidebar__toggle" aria-label="Expandir menu" aria-expanded="false">
+      <svg viewBox="0 0 256 256" width="16" height="16" aria-hidden="true">
+        <polyline points="96,64 160,128 96,192" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"></polyline>
+      </svg>
+    </button>
+
+    <div class="pnl-sidebar__nav">
+      <button type="button" class="pnl-side-tab is-active" data-tab="dashboard" role="tab" aria-selected="true" id="pnl-side-btn-dashboard">
+        <svg viewBox="0 0 256 256" width="20" height="20" aria-hidden="true">
+          <rect x="32" y="152" width="40" height="72" rx="6" fill="currentColor"></rect>
+          <rect x="108" y="104" width="40" height="120" rx="6" fill="currentColor"></rect>
+          <rect x="184" y="56" width="40" height="168" rx="6" fill="currentColor"></rect>
+        </svg>
+        <span>Dashboard</span>
+      </button>
+      <button type="button" class="pnl-side-tab" data-tab="produtos" role="tab" aria-selected="false" id="pnl-side-btn-produtos">
+        <svg viewBox="0 0 256 256" width="20" height="20" aria-hidden="true">
+          <rect x="32" y="32" width="80" height="80" rx="14" fill="currentColor"></rect>
+          <rect x="144" y="32" width="80" height="80" rx="14" fill="currentColor"></rect>
+          <rect x="32" y="144" width="80" height="80" rx="14" fill="currentColor"></rect>
+          <rect x="144" y="144" width="80" height="80" rx="14" fill="currentColor"></rect>
+        </svg>
+        <span>Produtos</span>
+      </button>
+    </div>
+
+    <button type="button" id="pnl-sidebar-logout" class="pnl-sidebar__logout">
+      <svg viewBox="0 0 256 256" fill="currentColor" width="16" height="16" aria-hidden="true"><path d="M112 216a8 8 0 0 1-8 8H48a16 16 0 0 1-16-16V48a16 16 0 0 1 16-16h56a8 8 0 0 1 0 16H48v160h56a8 8 0 0 1 8 8Zm109.66-93.66-40-40a8 8 0 0 0-11.32 11.32L196.69 120H104a8 8 0 0 0 0 16h92.69l-26.35 26.34a8 8 0 0 0 11.32 11.32l40-40a8 8 0 0 0 0-11.32Z"></path></svg>
+      <span class="pnl-sidebar__logout-label">Sair</span>
+    </button>
+  </nav>
+
   <nav class="pnl-tabs" role="tablist" aria-label="Seções do painel">
     <button type="button" class="pnl-tab is-active" data-tab="dashboard" role="tab" aria-selected="true" id="pnl-tab-btn-dashboard">Dashboard</button>
     <button type="button" class="pnl-tab" data-tab="produtos" role="tab" aria-selected="false" id="pnl-tab-btn-produtos">Produtos</button>
@@ -83,6 +122,27 @@
       <p id="pnl-dash-error" class="pnl-error" role="alert" hidden></p>
 
       <div id="pnl-dash-cards" class="pnl-dash-grid" aria-busy="true"></div>
+
+      <div class="pnl-chart-card pnl-interesse-card">
+        <h3 class="pnl-chart-card__title">Mais procurados no site</h3>
+        <p class="pnl-interesse-sub">Cliques em “Confira disponibilidade” e nos botões de WhatsApp, no período escolhido.</p>
+        <ol id="pnl-interesse" class="pnl-interesse"></ol>
+      </div>
+
+      <div id="pnl-dash-charts" class="pnl-dash-charts">
+        <div class="pnl-chart-card">
+          <h3 class="pnl-chart-card__title">Gasto por dia</h3>
+          <div class="pnl-chart-card__canvas-wrap"><canvas id="pnl-chart-gasto"></canvas></div>
+        </div>
+        <div class="pnl-chart-card">
+          <h3 class="pnl-chart-card__title">Cliques e impressões</h3>
+          <div class="pnl-chart-card__canvas-wrap"><canvas id="pnl-chart-cliques"></canvas></div>
+        </div>
+        <div class="pnl-chart-card pnl-chart-card--donut">
+          <h3 class="pnl-chart-card__title">Resultados por categoria</h3>
+          <div class="pnl-chart-card__canvas-wrap"><canvas id="pnl-chart-categorias"></canvas></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -95,11 +155,57 @@
         <p id="pnl-warning" class="pnl-warning" hidden></p>
       </div>
 
-      <div id="pnl-filters" class="pnl-filters" role="tablist" aria-label="Filtrar por categoria"></div>
+      <div id="pnl-produtos-toolbar" class="pnl-produtos-toolbar">
+        <div id="pnl-filters" class="pnl-filters" role="tablist" aria-label="Filtrar por categoria"></div>
+
+        <div class="pnl-search">
+          <svg viewBox="0 0 256 256" fill="none" stroke="currentColor" stroke-width="18" stroke-linecap="round" width="16" height="16" aria-hidden="true">
+            <circle cx="112" cy="112" r="80"></circle>
+            <line x1="168" y1="168" x2="224" y2="224"></line>
+          </svg>
+          <input type="search" id="pnl-busca" class="pnl-search__input" placeholder="Buscar por nome do modelo" aria-label="Buscar produtos">
+        </div>
+
+        <div class="pnl-view-toggle">
+          <button type="button" class="pnl-view-btn is-active" data-view="grade">Grade</button>
+          <button type="button" class="pnl-view-btn" data-view="tabela">Tabela</button>
+        </div>
+      </div>
+
+      <div id="pnl-bulk-bar" class="pnl-bulk-bar" hidden>
+        <span id="pnl-bulk-count" class="pnl-bulk-bar__count"></span>
+        <div class="pnl-bulk-bar__actions">
+          <button type="button" data-bulk="disponivel-on" class="pnl-bulk-btn">Marcar disponível</button>
+          <button type="button" data-bulk="disponivel-off" class="pnl-bulk-btn">Marcar indisponível</button>
+          <button type="button" data-bulk="destaque-on" class="pnl-bulk-btn">Marcar destaque</button>
+          <button type="button" data-bulk="destaque-off" class="pnl-bulk-btn">Desmarcar destaque</button>
+          <button type="button" id="pnl-bulk-excluir" class="pnl-bulk-btn pnl-bulk-btn--danger">Excluir selecionados</button>
+          <button type="button" id="pnl-bulk-limpar" class="pnl-bulk-btn pnl-bulk-btn--ghost">Limpar seleção</button>
+        </div>
+      </div>
 
       <p id="pnl-load-error" class="pnl-error" role="alert" hidden></p>
 
-      <div id="pnl-grid" class="pnl-grid" aria-busy="true"></div>
+      <div id="pnl-produtos-lista" class="pnl-produtos-lista">
+        <div id="pnl-grid" class="pnl-grid" aria-busy="true"></div>
+        <div class="pnl-table-wrap">
+          <table id="pnl-tabela" class="pnl-tabela" hidden>
+            <thead>
+              <tr>
+                <th class="pnl-tabela__th-check"><input type="checkbox" id="pnl-tabela-check-all" aria-label="Selecionar todos"></th>
+                <th>Foto</th>
+                <th>Modelo</th>
+                <th>Categoria</th>
+                <th>Cor</th>
+                <th>Disponível</th>
+                <th>Destaque</th>
+                <th class="pnl-tabela__th-acoes">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="pnl-tabela-body"></tbody>
+          </table>
+        </div>
+      </div>
 
       <p id="pnl-empty" class="pnl-empty" hidden>Nenhum produto nesta categoria.</p>
     </div>
@@ -127,7 +233,7 @@
       <form id="pnl-form" class="pnl-form" novalidate>
         <p id="pnl-form-error" class="pnl-error" role="alert" hidden></p>
 
-        <label class="pnl-photo-field">
+        <label class="pnl-photo-field" id="pnl-photo-field">
           <span id="pnl-photo-preview" class="pnl-photo-preview"></span>
           <span class="pnl-photo-text">
             <strong>Foto do produto</strong>
@@ -169,6 +275,42 @@
           <input type="text" id="pnl-cor-outra" placeholder="Digite a cor">
         </label>
 
+        <p class="pnl-form-sep"><span>Ficha técnica</span></p>
+
+        <div class="pnl-field-grid">
+          <label class="pnl-field">
+            <span>Preço <em>(opcional)</em></span>
+            <input type="number" id="pnl-preco" inputmode="decimal" step="0.01" min="0" placeholder="Ex.: 2400,00">
+          </label>
+          <label class="pnl-field">
+            <span>Armazenamento</span>
+            <input type="text" id="pnl-armazenamento" placeholder="Ex.: 128 GB">
+          </label>
+        </div>
+
+        <div class="pnl-field-grid">
+          <label class="pnl-field">
+            <span>Condição</span>
+            <select id="pnl-condicao">
+              <option value="">Não informar</option>
+              <option value="lacrado">Lacrado</option>
+              <option value="seminovo">Seminovo</option>
+              <option value="usado">Usado</option>
+            </select>
+          </label>
+          <label class="pnl-field">
+            <span>Garantia (meses)</span>
+            <input type="number" id="pnl-garantia" inputmode="numeric" step="1" min="0" max="60" placeholder="Ex.: 3">
+          </label>
+        </div>
+
+        <label class="pnl-field" id="pnl-bateria-field" hidden>
+          <span>Saúde da bateria (%)</span>
+          <input type="number" id="pnl-bateria" inputmode="numeric" step="1" min="0" max="100" placeholder="Ex.: 89">
+        </label>
+
+        <p class="pnl-form-hint">Deixe em branco o que não quiser mostrar. Sem preço, o site escreve “Sob consulta”.</p>
+
         <div class="pnl-toggle-field">
           <button type="button" id="pnl-form-disponivel" class="pnl-toggle-btn pnl-toggle-btn--row">
             <span>Disponível no site</span>
@@ -202,6 +344,7 @@
 <div id="pnl-toast" class="pnl-toast" role="status" aria-live="polite" hidden></div>
 
 <script src="https://unpkg.com/@supabase/supabase-js@2" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4" defer></script>
 <script src="../assets/js/painel.js" defer></script>
 </body>
 </html>

@@ -30,6 +30,21 @@
   font-size: 14px;
 }
 
+/* — Layout desktop (≥1024px) — elementos novos ficam ocultos por padrão;
+   só aparecem dentro do bloco @media (min-width: 1024px) lá embaixo. Os
+   gráficos do dashboard são exceção: aparecem em qualquer largura (ver
+   seção "Gráficos do dashboard" abaixo). */
+.pnl-sidebar,
+.pnl-search,
+.pnl-view-toggle,
+.pnl-select-check {
+  display: none;
+}
+.pnl-photo-field.is-dragover {
+  border-color: var(--rc-yellow);
+  background: rgba(216, 179, 74, .06);
+}
+
 /* — Login ------------------------------------------------------------- */
 
 .pnl-login {
@@ -47,7 +62,18 @@
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(120% 60% at 50% 0%, rgba(216, 179, 74, .10), transparent 60%);
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(216, 179, 74, .13), transparent 62%),
+    radial-gradient(80% 50% at 50% 100%, rgba(216, 179, 74, .05), transparent 60%);
+}
+/* trama diagonal discreta: dá material ao fundo, que era um vazio chapado */
+.pnl-login::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: .5;
+  background: repeating-linear-gradient(125deg, rgba(255, 255, 255, .022) 0 1px, transparent 1px 46px);
 }
 
 .pnl-login__box {
@@ -61,12 +87,15 @@
 }
 
 .pnl-login__logo {
-  width: 76px;
-  height: 76px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid rgba(216, 179, 74, .5);
-  box-shadow: 0 12px 34px rgba(0, 0, 0, .6);
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, .7),
+    0 0 0 7px rgba(216, 179, 74, .06),
+    inset 0 1px 0 rgba(255, 255, 255, .16);
 }
 
 .pnl-login__head {
@@ -86,8 +115,9 @@
 }
 
 .pnl-login__title {
-  font-size: 28px;
-  letter-spacing: -.02em;
+  font-size: 30px;
+  letter-spacing: -.03em;
+  font-weight: 600;
   color: var(--rc-title);
 }
 
@@ -102,12 +132,25 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 22px;
+  padding: 26px 24px;
   border: 1px solid var(--rc-hairline);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .035), rgba(255, 255, 255, .012));
-  box-shadow: 0 18px 44px rgba(0, 0, 0, .45);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .015));
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  box-shadow: 0 30px 66px -24px rgba(0, 0, 0, .8), inset 0 1px 0 rgba(255, 255, 255, .07);
 }
+/* fio dourado no topo da caixa */
+.pnl-login-form::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 22%;
+  right: 22%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--rc-gold), transparent);
+}
+.pnl-login-form { position: relative; }
 
 .pnl-login__back {
   flex: none;
@@ -331,18 +374,37 @@
 @media (min-width: 640px) {
   .pnl-dash-grid { grid-template-columns: repeat(3, 1fr); }
 }
-@media (min-width: 960px) {
-  .pnl-dash-grid { grid-template-columns: repeat(6, 1fr); }
-}
 
 .pnl-stat-card {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 16px;
-  border: 1px solid var(--rc-hairline-soft);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .035), rgba(255, 255, 255, .012));
+  gap: 5px;
+  padding: 18px 18px 18px 20px;
+  overflow: hidden;
+  border: 1px solid var(--rc-hairline);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .045), rgba(255, 255, 255, .012));
+  backdrop-filter: blur(12px) saturate(125%);
+  -webkit-backdrop-filter: blur(12px) saturate(125%);
+  box-shadow: var(--elev-2, 0 10px 24px -8px rgba(0, 0, 0, .55));
+  transition: transform .3s ease, border-color .3s ease, box-shadow .3s ease;
+}
+/* faixa de status na borda — indicador de metrica (Executive Dashboard) */
+.pnl-stat-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 14%;
+  bottom: 14%;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, var(--rc-gold), rgba(216, 179, 74, .25));
+}
+.pnl-stat-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(216, 179, 74, .4);
+  box-shadow: var(--elev-3, 0 20px 46px -18px rgba(0, 0, 0, .75));
 }
 .pnl-stat-card__label {
   font-size: 11px;
@@ -353,16 +415,66 @@
 }
 .pnl-stat-card__value {
   font-family: var(--font-heading);
-  font-weight: 500;
-  font-size: clamp(19px, 4.4vw, 26px);
-  line-height: 1.15;
+  font-weight: 600;
+  /* numero de KPI grande: e o dado que o Rafael abre o painel pra ver */
+  font-size: clamp(22px, 5vw, 34px);
+  line-height: 1.08;
+  letter-spacing: -.028em;
   color: var(--rc-title);
   overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 .pnl-stat-card__sub {
   font-size: 11px;
   color: var(--color-neutral-500);
 }
+
+/* — Gráficos do dashboard — mobile-first: aparecem em qualquer largura,
+   empilhados numa coluna só; o bloco desktop lá embaixo só ajusta o
+   número de colunas. */
+.pnl-dash-charts {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+.pnl-chart-card--donut { grid-column: 1 / -1; }
+.pnl-chart-card {
+  position: relative;
+  border: 1px solid var(--rc-hairline);
+  border-radius: 18px;
+  padding: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .04), rgba(255, 255, 255, .01));
+  backdrop-filter: blur(12px) saturate(125%);
+  -webkit-backdrop-filter: blur(12px) saturate(125%);
+  box-shadow: var(--elev-2, 0 10px 24px -8px rgba(0, 0, 0, .55));
+  transition: border-color .3s ease, box-shadow .3s ease;
+}
+.pnl-chart-card:hover {
+  border-color: rgba(216, 179, 74, .32);
+  box-shadow: var(--elev-3, 0 20px 46px -18px rgba(0, 0, 0, .75));
+}
+.pnl-chart-card__title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 var(--space-6);
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--color-neutral-400);
+}
+.pnl-chart-card__title::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--rc-gold);
+  box-shadow: 0 0 8px rgba(216, 179, 74, .8);
+}
+.pnl-chart-card__canvas-wrap { position: relative; height: 260px; }
 
 .pnl-title-row {
   display: flex;
@@ -761,6 +873,283 @@
 }
 .pnl-btn-danger:hover { background: rgba(226, 106, 106, .24); }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   DESKTOP (≥1024px) — sidebar, gráficos, tabela, seleção em lote, drawer.
+   Abaixo de 1024px nada deste bloco se aplica.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+
+  /* — Casca: sidebar fixa e colapsável; conteúdo deslocado pela mesma
+     largura, animando junto (variável compartilhada, então os dois
+     lados transicionam em sincronia). — */
+  .pnl-shell { --sidebar-w: 72px; }
+  .pnl-shell.pnl-sidebar-expandida { --sidebar-w: 240px; }
+
+  .pnl-tabs { display: none; }
+  .pnl-header {
+    margin-left: var(--sidebar-w);
+    transition: margin-left .25s ease;
+  }
+  #pnl-tab-dashboard,
+  #pnl-tab-produtos {
+    margin-left: var(--sidebar-w);
+    transition: margin-left .25s ease;
+    min-width: 0;
+  }
+
+  .pnl-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-w);
+    height: 100svh;
+    padding: var(--space-6) 16px;
+    border-right: 1px solid var(--rc-hairline);
+    background: var(--rc-surface);
+    overflow: hidden;
+    transition: width .25s ease;
+    z-index: 50;
+  }
+  .pnl-sidebar__brand { display: flex; align-items: center; gap: var(--space-3); }
+  .pnl-sidebar__mark { flex: none; width: 32px; height: 32px; border-radius: 8px; object-fit: cover; }
+  .pnl-sidebar__name {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    color: var(--rc-gold-soft);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    font-size: 13px;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity .15s ease;
+  }
+  .pnl-sidebar__toggle {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-left: -8px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, .1);
+    background: transparent;
+    color: var(--color-neutral-400);
+    cursor: pointer;
+  }
+  .pnl-sidebar__toggle:hover { color: var(--rc-yellow); border-color: rgba(216, 179, 74, .4); }
+  .pnl-sidebar__toggle svg { transition: transform .25s ease; }
+  .pnl-shell.pnl-sidebar-expandida .pnl-sidebar__toggle svg { transform: rotate(180deg); }
+  .pnl-sidebar__nav { display: flex; flex-direction: column; gap: 4px; }
+  .pnl-side-tab {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 44px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 0;
+    background: transparent;
+    color: var(--color-neutral-400);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+  }
+  .pnl-side-tab svg { flex: none; }
+  .pnl-side-tab span {
+    opacity: 0;
+    transition: opacity .15s ease;
+  }
+  .pnl-side-tab:hover { color: var(--color-neutral-300); }
+  .pnl-side-tab.is-active { background: rgba(255, 212, 0, .14); color: var(--rc-yellow); }
+  .pnl-sidebar__logout {
+    margin-top: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(216, 179, 74, .35);
+    background: transparent;
+    color: var(--rc-gold-soft);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .pnl-sidebar__logout svg { flex: none; }
+  .pnl-sidebar__logout-label {
+    opacity: 0;
+    transition: opacity .15s ease;
+  }
+  .pnl-sidebar__logout:hover { background: rgba(216, 179, 74, .12); }
+
+  .pnl-shell.pnl-sidebar-expandida .pnl-sidebar__name,
+  .pnl-shell.pnl-sidebar-expandida .pnl-side-tab span,
+  .pnl-shell.pnl-sidebar-expandida .pnl-sidebar__logout-label {
+    opacity: 1;
+    transition-delay: .1s;
+  }
+
+  /* — Gráficos do dashboard: só a contagem de colunas muda aqui — o
+     resto (card, título, altura do canvas) já vem da regra mobile-first
+     lá em cima. — */
+  .pnl-dash-charts { grid-template-columns: 1fr 1fr; }
+
+  /* — Toolbar de produtos: filtros + busca + seletor de visualização — */
+  #pnl-produtos-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .pnl-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 240px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, .12);
+    background: rgba(11, 12, 18, .7);
+    color: var(--color-neutral-400);
+  }
+  .pnl-search__input {
+    flex: 1;
+    background: none;
+    border: 0;
+    outline: 0;
+    color: var(--rc-title);
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .pnl-search__input::placeholder { color: var(--color-neutral-600); }
+  .pnl-view-toggle {
+    display: flex;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-left: auto;
+  }
+  .pnl-view-btn {
+    min-height: 38px;
+    padding: 0 14px;
+    border: 0;
+    background: transparent;
+    color: var(--color-neutral-400);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .pnl-view-btn.is-active { background: rgba(255, 212, 0, .14); color: var(--rc-yellow); }
+
+  /* — Seleção em lote — */
+  .pnl-select-check {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--rc-yellow);
+    cursor: pointer;
+  }
+  .pnl-card .pnl-select-check { position: absolute; top: 10px; left: 10px; z-index: 2; }
+  .pnl-bulk-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-4);
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--rc-hairline);
+    background: rgba(216, 179, 74, .06);
+  }
+  .pnl-bulk-bar__count { font-size: 13px; font-weight: 600; color: var(--rc-gold-soft); }
+  .pnl-bulk-bar__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pnl-bulk-btn {
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, .12);
+    background: transparent;
+    color: var(--color-neutral-300);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .pnl-bulk-btn:hover { border-color: rgba(216, 179, 74, .5); color: var(--rc-yellow); }
+  .pnl-bulk-btn--danger:hover { border-color: rgba(226, 106, 106, .55); color: #e26a6a; }
+  .pnl-bulk-btn--ghost { border-color: transparent; }
+
+  /* — Tabela — */
+  .pnl-table-wrap { border: 1px solid var(--rc-hairline-soft); border-radius: 14px; overflow: auto; }
+  .pnl-tabela { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 13px; }
+  .pnl-tabela th {
+    text-align: left;
+    padding: 10px 14px;
+    color: var(--color-neutral-500);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    border-bottom: 1px solid var(--rc-hairline-soft);
+  }
+  .pnl-tabela td { padding: 8px 14px; border-bottom: 1px solid var(--rc-hairline-soft); vertical-align: middle; }
+  .pnl-tabela tbody tr:hover { background: rgba(216, 179, 74, .04); }
+  .pnl-tabela__thumb { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; background: #101118; }
+  .pnl-tabela__acoes { display: flex; gap: 2px; }
+  .pnl-tabela__nome { color: var(--rc-title); font-weight: 500; }
+
+  /* — Botão "Adicionar produto": para de ser barra fixa full-width — */
+  #pnl-tab-produtos { padding-bottom: 0; }
+  .pnl-fab-bar { position: sticky; bottom: 0; background: none; padding: var(--space-4) 0 0; pointer-events: auto; }
+  .pnl-fab-inner { max-width: none; }
+  .pnl-fab { width: auto; padding: 0 24px; margin-left: auto; box-shadow: 0 8px 22px rgba(0, 0, 0, .4); }
+
+  /* — Drawer: escopado por ID pra nunca afetar #pnl-confirm-backdrop,
+     que também é .pnl-backdrop — */
+  #pnl-modal-backdrop { align-items: stretch; justify-content: flex-end; }
+  #pnl-modal-backdrop .pnl-sheet {
+    width: min(440px, 92vw);
+    max-width: none;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    border-left: 1px solid var(--rc-hairline);
+    border-bottom: 0;
+    animation-name: pnlDrawer;
+  }
+  #pnl-modal-backdrop .pnl-form { overflow-y: auto; }
+
+  @keyframes pnlDrawer {
+    from { transform: translateX(24px); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+  }
+}
+
+@media (min-width: 1440px) {
+  .pnl-dash-charts { grid-template-columns: repeat(3, 1fr); }
+  .pnl-chart-card--donut { grid-column: auto; }
+}
+
+/* Rede de segurança: nunca deixar a tabela/barra em lote visíveis abaixo
+   do breakpoint, mesmo que o estado (visualização 'tabela') tenha ficado
+   de uma sessão redimensionada a partir do desktop. */
+@media (max-width: 1023.98px) {
+  #pnl-tabela,
+  #pnl-bulk-bar { display: none !important; }
+  #pnl-grid { display: grid !important; }
+}
+
 /* — Toast ------------------------------------------------------------------- */
 
 .pnl-toast {
@@ -785,4 +1174,107 @@
 
 @media (prefers-reduced-motion: reduce) {
   .pnl-sheet { animation: none; }
+}
+
+/* — Ficha técnica no formulário — */
+.pnl-form-sep {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 6px 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .17em;
+  text-transform: uppercase;
+  color: var(--rc-gold);
+}
+.pnl-form-sep::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--rc-hairline);
+}
+.pnl-field span em {
+  font-style: normal;
+  font-weight: 400;
+  color: var(--color-neutral-600);
+}
+.pnl-form-hint {
+  margin: -4px 0 2px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-neutral-600);
+}
+
+/* — Ficha na listagem de produtos — */
+.pnl-spec {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.pnl-spec span {
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 100px;
+  border: 1px solid var(--rc-hairline-soft);
+  color: var(--color-neutral-400);
+  background: rgba(255, 255, 255, .03);
+}
+.pnl-preco {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: -.02em;
+  color: var(--rc-gold);
+  font-variant-numeric: tabular-nums;
+}
+.pnl-preco--vazio { color: var(--color-neutral-600); font-weight: 400; font-size: 13px; }
+
+/* — Mais procurados no site — */
+.pnl-interesse-card { margin-bottom: 14px; }
+.pnl-interesse-sub {
+  margin: -8px 0 16px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-neutral-600);
+}
+.pnl-interesse { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.pnl-interesse__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px auto;
+  align-items: center;
+  gap: 12px;
+}
+.pnl-interesse__nome {
+  font-size: 13.5px;
+  color: var(--rc-title);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pnl-interesse__barra {
+  height: 6px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, .06);
+  overflow: hidden;
+}
+.pnl-interesse__barra i {
+  display: block;
+  height: 100%;
+  border-radius: 100px;
+  background: linear-gradient(90deg, rgba(216, 179, 74, .55), var(--rc-gold));
+}
+.pnl-interesse__n {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--rc-gold);
+  font-variant-numeric: tabular-nums;
+  min-width: 2ch;
+  text-align: right;
+}
+.pnl-interesse__vazio { font-size: 13px; color: var(--color-neutral-600); }
+@media (max-width: 520px) {
+  .pnl-interesse__item { grid-template-columns: minmax(0, 1fr) 56px auto; }
 }

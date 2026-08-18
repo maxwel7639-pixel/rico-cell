@@ -19,7 +19,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="assets/css/styles.css">
 
 <!-- ═══ ESPAÇO RESERVADO — PIXEL META (colar o ID e descomentar) ═══
@@ -82,9 +82,12 @@
 <main>
 
   <section class="hero" id="topo">
-    <img class="hero__bg lighten" src="assets/img/produto-iphone12pro-duo.jpg" alt="iPhone 12 Pro grafite e dourado na Rico Cell" fetchpriority="high">
+    <div class="hero__layer" data-parallax="0.18">
+      <img class="hero__bg lighten" src="assets/img/produto-iphone12pro-duo.jpg" alt="iPhone 12 Pro grafite e dourado na Rico Cell" fetchpriority="high">
+    </div>
     <div class="hero__scrim"></div>
     <div class="hero__scrim hero__scrim--bottom"></div>
+    <div class="hero__glow" aria-hidden="true"></div>
     <div class="hero__inner">
       <img class="hero__crest" src="assets/img/logo-rico-cell.jpg" alt="Brasão Rico Cell" width="92" height="92">
       <span class="eyebrow">Fortaleza / CE · Atendimento 100% digital</span>
@@ -97,27 +100,52 @@
         </a>
         <a class="btn btn--outline btn--lg" href="#iphones">Ver iPhones disponíveis</a>
       </div>
+      <ul class="hero__trust">
+        <li>Aparelhos conferidos um por um</li>
+        <li>Lacrados, com garantia</li>
+        <li>Entrega em Fortaleza</li>
+      </ul>
+    </div>
+    <a class="hero__cue" href="#iphones" aria-label="Ver os aparelhos">
+      <span class="hero__cue-line" aria-hidden="true"></span>
+      <span class="hero__cue-txt">Ver aparelhos</span>
+    </a>
+  </section>
+
+  <section class="tick" aria-label="Por que a Rico Cell">
+    <div class="tick__track">
+      <ul class="tick__group">
+        <li class="tick__item"><strong>+5 anos</strong><span>de loja em Fortaleza</span></li>
+        <li class="tick__item"><strong>+2.000</strong><span>clientes atendidos</span></li>
+        <li class="tick__item"><strong>Assistência</strong><span>técnica especializada</span></li>
+        <li class="tick__item"><strong>Direto</strong><span>com o dono da loja</span></li>
+        <li class="tick__item"><strong>Lacrados</strong><span>com garantia</span></li>
+        <li class="tick__item"><strong>Entrega</strong><span>em Fortaleza</span></li>
+        <li class="tick__item"><strong>100% digital</strong><span>atendimento pelo WhatsApp</span></li>
+      </ul>
+      <ul class="tick__group" aria-hidden="true">
+        <li class="tick__item"><strong>+5 anos</strong><span>de loja em Fortaleza</span></li>
+        <li class="tick__item"><strong>+2.000</strong><span>clientes atendidos</span></li>
+        <li class="tick__item"><strong>Assistência</strong><span>técnica especializada</span></li>
+        <li class="tick__item"><strong>Direto</strong><span>com o dono da loja</span></li>
+        <li class="tick__item"><strong>Lacrados</strong><span>com garantia</span></li>
+        <li class="tick__item"><strong>Entrega</strong><span>em Fortaleza</span></li>
+        <li class="tick__item"><strong>100% digital</strong><span>atendimento pelo WhatsApp</span></li>
+      </ul>
     </div>
   </section>
 
-  <section class="stats reveal">
-    <div class="container stats__grid">
-      <div class="stat">
-        <span class="stat__value">+5 anos</span>
-        <span class="stat__label">de loja em Fortaleza</span>
+  <!-- Vitrine alimentada pelo /painel. Nasce escondida: se o Supabase não
+       responder ou não houver produto disponível, a seção simplesmente não
+       aparece e o resto da página segue igual. -->
+  <section class="section section--tight" id="vitrine" hidden>
+    <div class="container section__inner">
+      <div class="section-head">
+        <span class="eyebrow">Atualizado pela loja</span>
+        <h2 class="section-title section-title--sm">Chegou na vitrine</h2>
+        <p class="section-lead section-lead--sm">O que o Rafael cadastrou como disponível agora. Fale no WhatsApp para confirmar antes de vir.</p>
       </div>
-      <div class="stat">
-        <span class="stat__value">+2.000</span>
-        <span class="stat__label">clientes atendidos</span>
-      </div>
-      <div class="stat">
-        <span class="stat__value">Assistência</span>
-        <span class="stat__label">técnica especializada</span>
-      </div>
-      <div class="stat">
-        <span class="stat__value">Direto</span>
-        <span class="stat__label">com o dono da loja</span>
-      </div>
+      <div class="card-grid card-grid--compact" id="vitrine-grid"></div>
     </div>
   </section>
 
@@ -133,9 +161,6 @@
         <article class="card card--tilt stack__item" data-tilt>
           <div class="card__media">
             <img class="card__photo lighten" data-foto src="assets/img/produto-iphone12pro-duo.jpg" alt="iPhone 12 Pro grafite e dourado" loading="lazy" decoding="async">
-            <div class="soon-overlay" data-em-breve>
-              <span class="soon-overlay__chip">Foto desta cor em breve</span>
-            </div>
             <span class="badge">Últimas unidades</span>
           </div>
           <div class="card__body card__body--roomy">
@@ -148,13 +173,8 @@
               <button class="swatch" type="button" aria-pressed="false" data-src="assets/img/produto-iphone12pro-duo.jpg" data-label="Dourado disponível" aria-label="Dourado" title="Dourado">
                 <span class="swatch__dot" style="background:#d9c4a0"></span>
               </button>
-              <button class="swatch" type="button" aria-pressed="false" data-mock data-label="Prateado sob consulta" aria-label="Prateado (sob consulta)" title="Prateado — sob consulta">
-                <span class="swatch__dot swatch__dot--mock"></span>
-              </button>
-              <button class="swatch" type="button" aria-pressed="false" data-mock data-label="Azul-pacífico sob consulta" aria-label="Azul-pacífico (sob consulta)" title="Azul-pacífico — sob consulta">
-                <span class="swatch__dot swatch__dot--mock"></span>
-              </button>
             </div>
+            <p class="card__hint">Outras cores sob consulta.</p>
             <a class="btn btn--wa btn--block" href="https://wa.me/5585994226321?text=Ol%C3%A1!%20Quero%20confirmar%20a%20disponibilidade%20do%20iPhone%2012%20Pro.%20%5Borigem%3A%20iphone-12-pro%5D" target="_blank" rel="noopener">Confira disponibilidade</a>
           </div>
         </article>
@@ -162,9 +182,6 @@
         <article class="card card--tilt stack__item" data-tilt>
           <div class="card__media">
             <img class="card__photo lighten" data-foto src="assets/img/produto-iphone11-verde.jpg" alt="iPhone 11 verde" loading="lazy" decoding="async">
-            <div class="soon-overlay" data-em-breve>
-              <span class="soon-overlay__chip">Foto desta cor em breve</span>
-            </div>
           </div>
           <div class="card__body card__body--roomy">
             <h3 class="card__title">iPhone 11</h3>
@@ -173,16 +190,8 @@
               <button class="swatch" type="button" aria-pressed="true" data-src="assets/img/produto-iphone11-verde.jpg" data-label="Verde-água disponível" aria-label="Verde-água" title="Verde-água">
                 <span class="swatch__dot" style="background:#b7e4d8"></span>
               </button>
-              <button class="swatch" type="button" aria-pressed="false" data-mock data-label="Preto sob consulta" aria-label="Preto (sob consulta)" title="Preto — sob consulta">
-                <span class="swatch__dot swatch__dot--mock"></span>
-              </button>
-              <button class="swatch" type="button" aria-pressed="false" data-mock data-label="Branco sob consulta" aria-label="Branco (sob consulta)" title="Branco — sob consulta">
-                <span class="swatch__dot swatch__dot--mock"></span>
-              </button>
-              <button class="swatch" type="button" aria-pressed="false" data-mock data-label="Vermelho sob consulta" aria-label="Vermelho (sob consulta)" title="Vermelho — sob consulta">
-                <span class="swatch__dot swatch__dot--mock"></span>
-              </button>
             </div>
+            <p class="card__hint">Outras cores sob consulta.</p>
             <a class="btn btn--wa btn--block" href="https://wa.me/5585994226321?text=Ol%C3%A1!%20Quero%20confirmar%20a%20disponibilidade%20do%20iPhone%2011.%20%5Borigem%3A%20iphone-11%5D" target="_blank" rel="noopener">Confira disponibilidade</a>
           </div>
         </article>
@@ -190,9 +199,6 @@
         <article class="card card--tilt stack__item" data-tilt>
           <div class="card__media">
             <img class="card__photo lighten" data-foto src="assets/img/produto-iphone13pro-grafite.jpg" alt="iPhone 13 Pro grafite" loading="lazy" decoding="async">
-            <div class="soon-overlay" data-em-breve>
-              <span class="soon-overlay__chip">Foto desta cor em breve</span>
-            </div>
             <span class="badge">Oferta por tempo limitado</span>
           </div>
           <div class="card__body card__body--roomy">
@@ -202,16 +208,8 @@
               <button class="swatch" type="button" aria-pressed="true" data-src="assets/img/produto-iphone13pro-grafite.jpg" data-label="Grafite disponível" aria-label="Grafite" title="Grafite">
                 <span class="swatch__dot" style="background:#43444a"></span>
               </button>
-              <button class="swatch" type="button" aria-pressed="false" data-mock data-label="Dourado sob consulta" aria-label="Dourado (sob consulta)" title="Dourado — sob consulta">
-                <span class="swatch__dot swatch__dot--mock"></span>
-              </button>
-              <button class="swatch" type="button" aria-pressed="false" data-mock data-label="Prateado sob consulta" aria-label="Prateado (sob consulta)" title="Prateado — sob consulta">
-                <span class="swatch__dot swatch__dot--mock"></span>
-              </button>
-              <button class="swatch" type="button" aria-pressed="false" data-mock data-label="Azul-serra sob consulta" aria-label="Azul-serra (sob consulta)" title="Azul-serra — sob consulta">
-                <span class="swatch__dot swatch__dot--mock"></span>
-              </button>
             </div>
+            <p class="card__hint">Outras cores sob consulta.</p>
             <a class="btn btn--wa btn--block" href="https://wa.me/5585994226321?text=Ol%C3%A1!%20Quero%20confirmar%20a%20disponibilidade%20do%20iPhone%2013%20Pro.%20%5Borigem%3A%20iphone-13-pro%5D" target="_blank" rel="noopener">Confira disponibilidade</a>
           </div>
         </article>
@@ -226,43 +224,30 @@
         <h2 class="section-title section-title--sm">Também trabalhamos com Android</h2>
         <p class="section-lead section-lead--sm">Realme, Xiaomi e outras marcas, lacrados e com garantia. Se você quer um aparelho bom sem gastar o de um iPhone, é por aqui.</p>
       </div>
-      <div class="card-grid card-grid--compact">
-        <article class="card card--tilt" data-tilt>
-          <div class="card__media">
-            <img class="card__photo card__photo--crop card__photo--crop-left lighten" src="assets/img/produto-celulares-android-balcao.jpg" alt="Realme Note 60x verde no balcão da Rico Cell" loading="lazy" decoding="async">
-            <span class="badge badge--soon">Foto individual em breve</span>
-          </div>
-          <div class="card__body card__body--roomy">
-            <h3 class="card__title card__title--sm">Realme Note 60x</h3>
-            <p class="card__meta">Verde. Lacrado, com garantia.</p>
-            <a class="btn btn--wa btn--block btn--nowrap" href="https://wa.me/5585994226321?text=Ol%C3%A1!%20Quero%20o%20Realme%20Note%2060x%20verde.%20%5Borigem%3A%20android-realme-verde%5D" target="_blank" rel="noopener">Confira disponibilidade</a>
-          </div>
-        </article>
-
-        <article class="card card--tilt" data-tilt>
-          <div class="card__media">
-            <img class="card__photo card__photo--crop card__photo--crop-center lighten" src="assets/img/produto-celulares-android-balcao.jpg" alt="Redmi A5 128 GB no balcão da Rico Cell" loading="lazy" decoding="async">
-            <span class="badge">Últimas unidades</span>
-            <span class="badge badge--soon">Foto individual em breve</span>
-          </div>
-          <div class="card__body card__body--roomy">
-            <h3 class="card__title card__title--sm">Redmi A5</h3>
-            <p class="card__meta">128 GB de ROM, 8 GB de RAM. Lacrado.</p>
-            <a class="btn btn--wa btn--block btn--nowrap" href="https://wa.me/5585994226321?text=Ol%C3%A1!%20Quero%20o%20Redmi%20A5%20128%20GB.%20%5Borigem%3A%20android-redmi-a5%5D" target="_blank" rel="noopener">Confira disponibilidade</a>
-          </div>
-        </article>
-
-        <article class="card card--tilt" data-tilt>
-          <div class="card__media">
-            <img class="card__photo card__photo--crop card__photo--crop-right lighten" src="assets/img/produto-celulares-android-balcao.jpg" alt="Realme Note 60x preto no balcão da Rico Cell" loading="lazy" decoding="async">
-            <span class="badge badge--soon">Foto individual em breve</span>
-          </div>
-          <div class="card__body card__body--roomy">
-            <h3 class="card__title card__title--sm">Realme Note 60x</h3>
-            <p class="card__meta">Preto. Lacrado, com garantia.</p>
-            <a class="btn btn--wa btn--block btn--nowrap" href="https://wa.me/5585994226321?text=Ol%C3%A1!%20Quero%20o%20Realme%20Note%2060x%20preto.%20%5Borigem%3A%20android-realme-preto%5D" target="_blank" rel="noopener">Confira disponibilidade</a>
-          </div>
-        </article>
+      <div class="vitrine">
+        <figure class="vitrine__media">
+          <img src="assets/img/android-vitrine.jpg" width="840" height="630" alt="Realme Note 60x verde, Redmi A5 e Realme Note 60x preto lacrados no balcão da Rico Cell" loading="lazy" decoding="async">
+        </figure>
+        <div class="vitrine__body">
+          <p class="vitrine__kicker">Em estoque agora</p>
+          <ul class="vitrine__list">
+            <li>
+              <span class="vitrine__dot" style="--dot:#2f7d52"></span>
+              <div><strong>Realme Note 60x</strong><em>Verde · lacrado, com garantia</em></div>
+            </li>
+            <li>
+              <span class="vitrine__dot" style="--dot:#c8102e"></span>
+              <div><strong>Redmi A5</strong><em>128 GB de ROM · 8 GB de RAM · lacrado</em></div>
+            </li>
+            <li>
+              <span class="vitrine__dot" style="--dot:#17181d"></span>
+              <div><strong>Realme Note 60x</strong><em>Preto · lacrado, com garantia</em></div>
+            </li>
+          </ul>
+          <a class="btn btn--wa btn--block" href="https://wa.me/5585994226321?text=Ol%C3%A1!%20Quero%20ver%20os%20Android%20dispon%C3%ADveis.%20%5Borigem%3A%20android%5D" target="_blank" rel="noopener">Ver Android disponíveis</a>
+          <p class="vitrine__note">Trabalhamos com outras marcas e modelos sob encomenda — é só perguntar.</p>
+        </div>
+      </div>
       </div>
     </div>
   </section>
@@ -304,18 +289,8 @@
           <div class="card__body">
             <h3 class="card__title card__title--xs">Smart TV AOC Roku 40"</h3>
             <p class="card__meta">Full HD, design sem bordas, apps de streaming.</p>
-            <a class="btn btn--outline btn--block" href="https://wa.me/5585994226321?text=Ol%C3%A1!%20Quero%20a%20Smart%20TV%20AOC%20Roku%2040.%20%5Borigem%3A%20tv-aoc%5D" target="_blank" rel="noopener">Ver mais opções</a>
-          </div>
-        </article>
-
-        <article class="card card--tilt stack__item" data-tilt>
-          <div class="card__media card__media--square">
-            <img class="card__photo" src="assets/img/produto-tv-aoc-caixa.jpg" alt="TV AOC 40 polegadas na caixa, na loja" loading="lazy" decoding="async">
-          </div>
-          <div class="card__body">
-            <h3 class="card__title card__title--xs">TVs a partir de 32"</h3>
-            <p class="card__meta">Lacradas, com nota e garantia.</p>
-            <a class="btn btn--outline btn--block" href="https://wa.me/5585994226321?text=Ol%C3%A1!%20Quero%20ver%20as%20TVs%20dispon%C3%ADveis.%20%5Borigem%3A%20tvs%5D" target="_blank" rel="noopener">Ver mais opções</a>
+            <p class="card__hint">Também trabalhamos com TVs a partir de 32" — lacradas, com nota e garantia.</p>
+            <a class="btn btn--outline btn--block" href="https://wa.me/5585994226321?text=Ol%C3%A1!%20Quero%20ver%20as%20TVs%20dispon%C3%ADveis.%20%5Borigem%3A%20tvs%5D" target="_blank" rel="noopener">Ver TVs disponíveis</a>
           </div>
         </article>
       </div>
@@ -403,16 +378,16 @@
     </div>
     <div class="depo__track" data-depo-track>
       <figure class="depo__item">
-        <img src="assets/img/depoimento-cliente-lavadora-01.jpg" alt="Cliente recebendo lavadora de roupas Wanke" loading="lazy" decoding="async">
+        <img src="assets/img/cliente-01.jpg" width="586" height="586" alt="Cliente recebendo lavadora de roupas Wanke" loading="lazy" decoding="async">
       </figure>
       <figure class="depo__item">
-        <img src="assets/img/depoimento-cliente-lavadora-02.jpg" alt="Cliente satisfeita com lavadora entregue em casa" loading="lazy" decoding="async">
+        <img src="assets/img/cliente-02.jpg" width="586" height="586" alt="Cliente satisfeita com lavadora entregue em casa" loading="lazy" decoding="async">
       </figure>
       <figure class="depo__item">
-        <img src="assets/img/depoimento-cliente-lavadora-03.jpg" alt="Cliente recebendo lavadora de roupas" loading="lazy" decoding="async">
+        <img src="assets/img/cliente-03.jpg" width="586" height="586" alt="Cliente recebendo lavadora de roupas" loading="lazy" decoding="async">
       </figure>
       <figure class="depo__item">
-        <img src="assets/img/depoimento-cliente-ventilador-01.jpg" alt="Cliente com ventilador Mallory na loja" loading="lazy" decoding="async">
+        <img src="assets/img/cliente-04.jpg" width="586" height="586" alt="Cliente com ventilador Mallory na loja" loading="lazy" decoding="async">
       </figure>
     </div>
   </section>
@@ -449,19 +424,38 @@
 </main>
 
 <footer class="site-footer">
-  <div class="site-footer__inner">
+  <div class="site-footer__top">
     <div class="site-footer__brand">
-      <img src="assets/img/logo-rico-cell.jpg" alt="Rico Cell" width="46" height="46" loading="lazy">
+      <img src="assets/img/logo-rico-cell.jpg" alt="Rico Cell" width="56" height="56" loading="lazy">
       <div class="site-footer__brand-text">
         <span class="brand__name">Rico Cell</span>
-        <span class="site-footer__tagline">Celulares, eletrônicos e assistência técnica</span>
+        <span class="site-footer__tagline">Celulares, eletrônicos e assistência técnica em Fortaleza / CE. Mais de 5 anos de loja, atendimento 100% digital.</span>
       </div>
     </div>
-    <div class="site-footer__links">
-      <a href="https://wa.me/5585994226321?text=Ol%C3%A1!%20Vim%20do%20site%20da%20Rico%20Cell.%20%5Borigem%3A%20rodape%5D" target="_blank" rel="noopener">WhatsApp (85) 99422-6321</a>
-      <a href="https://instagram.com/rico_cellshop" target="_blank" rel="noopener">Instagram</a>
-      <span>Fortaleza / CE · Atendimento 100% digital</span>
+
+    <nav class="site-footer__col" aria-label="Navegar">
+      <h3 class="site-footer__ttl">Navegar</h3>
+      <a href="#iphones">iPhones</a>
+      <a href="#eletronicos">Eletrônicos</a>
+      <a href="#assistencia">Assistência técnica</a>
+      <a href="#depoimentos">Clientes</a>
+      <a href="#sobre">Sobre a loja</a>
+    </nav>
+
+    <div class="site-footer__col">
+      <h3 class="site-footer__ttl">Falar com a loja</h3>
+      <a class="site-footer__wa" href="https://wa.me/5585994226321?text=Ol%C3%A1!%20Vim%20do%20site%20da%20Rico%20Cell.%20%5Borigem%3A%20rodape%5D" target="_blank" rel="noopener">
+        <svg width="16" height="16" aria-hidden="true"><use href="#i-whatsapp"></use></svg>
+        (85) 99422-6321
+      </a>
+      <a href="https://instagram.com/rico_cellshop" target="_blank" rel="noopener">@rico_cellshop</a>
+      <p class="site-footer__note">Respondemos no horário comercial.</p>
     </div>
+  </div>
+
+  <div class="site-footer__bar">
+    <span>&copy; <span id="ano">2026</span> Rico Cell · Fortaleza / CE</span>
+    <span class="site-footer__by">Site por MX Digital</span>
   </div>
 </footer>
 

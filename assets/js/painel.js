@@ -18,6 +18,12 @@
 
   var sb;
 
+  /* Paleta dourada única pros 3 gráficos — nada de cinza/azul neutro,
+     tudo dentro da família de cor da marca (mais clara → mais escura). */
+  var COR_OURO_CLARA = '#ffd400';
+  var COR_OURO_MEDIA = '#d8b34a';
+  var COR_OURO_ESCURA = '#a3823f';
+
   var CARDS_DASH = [
     { chave: 'gastoTotal', rotulo: 'Gasto total', formato: 'moeda' },
     { chave: 'cliques', rotulo: 'Cliques', formato: 'numero' },
@@ -31,13 +37,19 @@
     aba: 'dashboard',
     produtos: [],
     filtro: 'todos',
+    busca: '',
+    visualizacao: 'grade',
+    selecionados: new Set(),
     editandoId: null,
-    excluindoId: null,
+    excluindoIds: null,
     fotoArquivo: null,
     fotoPreviewUrl: '',
     salvando: false,
     dashPeriodo: '7d',
-    dashPedidoId: 0
+    dashPedidoId: 0,
+    dashDados: null,
+    charts: { gasto: null, cliques: null, categorias: null },
+    isDesktop: false
   };
 
   var el = {};
@@ -47,14 +59,21 @@
       'pnl-boot', 'pnl-boot-error', 'pnl-login', 'pnl-painel',
       'pnl-login-form', 'pnl-login-error', 'pnl-email', 'pnl-senha', 'pnl-login-submit',
       'pnl-logout',
+      'pnl-sidebar', 'pnl-sidebar-toggle', 'pnl-side-btn-dashboard', 'pnl-side-btn-produtos', 'pnl-sidebar-logout',
       'pnl-tab-dashboard', 'pnl-tab-produtos', 'pnl-tab-btn-dashboard', 'pnl-tab-btn-produtos',
-      'pnl-period', 'pnl-dash-demo', 'pnl-dash-error', 'pnl-dash-cards',
-      'pnl-summary', 'pnl-warning', 'pnl-filters', 'pnl-grid', 'pnl-empty', 'pnl-load-error',
+      'pnl-period', 'pnl-dash-demo', 'pnl-dash-error', 'pnl-dash-cards', 'pnl-dash-charts',
+      'pnl-chart-gasto', 'pnl-chart-cliques', 'pnl-chart-categorias', 'pnl-interesse',
+      'pnl-summary', 'pnl-warning', 'pnl-produtos-toolbar', 'pnl-filters', 'pnl-busca',
+      'pnl-bulk-bar', 'pnl-bulk-count', 'pnl-bulk-excluir', 'pnl-bulk-limpar',
+      'pnl-produtos-lista', 'pnl-grid', 'pnl-tabela', 'pnl-tabela-body', 'pnl-tabela-check-all',
+      'pnl-empty', 'pnl-load-error',
       'pnl-novo', 'pnl-modal-backdrop', 'pnl-modal-title', 'pnl-modal-close',
-      'pnl-form', 'pnl-form-error', 'pnl-foto', 'pnl-photo-preview', 'pnl-photo-caption',
+      'pnl-form', 'pnl-form-error', 'pnl-photo-field', 'pnl-foto', 'pnl-photo-preview', 'pnl-photo-caption',
       'pnl-nome', 'pnl-categoria', 'pnl-cor-select', 'pnl-cor-outra-field', 'pnl-cor-outra',
+      'pnl-preco', 'pnl-armazenamento', 'pnl-condicao', 'pnl-garantia',
+      'pnl-bateria', 'pnl-bateria-field',
       'pnl-form-disponivel', 'pnl-form-destaque', 'pnl-form-submit',
-      'pnl-confirm-backdrop', 'pnl-confirm-text', 'pnl-confirm-cancel', 'pnl-confirm-delete',
+      'pnl-confirm-backdrop', 'pnl-confirm-title', 'pnl-confirm-text', 'pnl-confirm-cancel', 'pnl-confirm-delete',
       'pnl-toast'
     ].forEach(function (id) { el[id] = document.getElementById(id); });
   }
@@ -63,6 +82,28 @@
     return String(str == null ? '' : str).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
+  }
+
+  var BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+  var CONDICAO = { lacrado: 'Lacrado', seminovo: 'Seminovo', usado: 'Usado' };
+
+  function precoHtml(p) {
+    return p.preco != null
+      ? '<span class="pnl-preco">' + escapeHtml(BRL.format(p.preco)) + '</span>'
+      : '<span class="pnl-preco pnl-preco--vazio">Sob consulta</span>';
+  }
+
+  /* Etiquetas da ficha técnica — só entra o que foi preenchido. */
+  function specHtml(p) {
+    var itens = [];
+    if (p.armazenamento) itens.push(p.armazenamento);
+    if (p.condicao) itens.push(CONDICAO[p.condicao] || p.condicao);
+    if (p.bateria_pct != null) itens.push('Bateria ' + p.bateria_pct + '%');
+    if (p.garantia_meses != null) itens.push(p.garantia_meses + ' ' + (p.garantia_meses === 1 ? 'mês' : 'meses') + ' de garantia');
+    if (!itens.length) return '';
+    return '<div class="pnl-spec">' + itens.map(function (t) {
+      return '<span>' + escapeHtml(t) + '</span>';
+    }).join('') + '</div>';
   }
 
   function categoriaRotulo(valor) {
@@ -106,13 +147,44 @@
     state.aba = aba;
     el['pnl-tab-dashboard'].hidden = aba !== 'dashboard';
     el['pnl-tab-produtos'].hidden = aba !== 'produtos';
-    el['pnl-tab-btn-dashboard'].classList.toggle('is-active', aba === 'dashboard');
-    el['pnl-tab-btn-dashboard'].setAttribute('aria-selected', String(aba === 'dashboard'));
-    el['pnl-tab-btn-produtos'].classList.toggle('is-active', aba === 'produtos');
-    el['pnl-tab-btn-produtos'].setAttribute('aria-selected', String(aba === 'produtos'));
 
-    if (aba === 'dashboard') carregarDashboard();
-    else carregarProdutos();
+    [
+      [el['pnl-tab-btn-dashboard'], aba === 'dashboard'],
+      [el['pnl-tab-btn-produtos'], aba === 'produtos'],
+      [el['pnl-side-btn-dashboard'], aba === 'dashboard'],
+      [el['pnl-side-btn-produtos'], aba === 'produtos']
+    ].forEach(function (par) {
+      par[0].classList.toggle('is-active', par[1]);
+      par[0].setAttribute('aria-selected', String(par[1]));
+    });
+
+    if (aba === 'dashboard') {
+      carregarDashboard();
+    } else {
+      state.selecionados.clear();
+      atualizarBarraSelecao();
+      carregarProdutos();
+    }
+  }
+
+  /* — Sidebar colapsável (só existe no layout desktop) ------------------------ */
+
+  var SIDEBAR_STORAGE_KEY = 'rc-painel-sidebar-expandida';
+
+  function aplicarEstadoSidebar(expandida) {
+    el['pnl-painel'].classList.toggle('pnl-sidebar-expandida', expandida);
+    el['pnl-sidebar-toggle'].setAttribute('aria-expanded', String(expandida));
+    el['pnl-sidebar-toggle'].setAttribute('aria-label', expandida ? 'Recolher menu' : 'Expandir menu');
+  }
+
+  function sidebarEstaExpandida() {
+    return el['pnl-painel'].classList.contains('pnl-sidebar-expandida');
+  }
+
+  function alternarSidebar() {
+    var expandida = !sidebarEstaExpandida();
+    aplicarEstadoSidebar(expandida);
+    try { window.localStorage.setItem(SIDEBAR_STORAGE_KEY, expandida ? '1' : '0'); } catch (error) { /* localStorage indisponível — só não persiste */ }
   }
 
   /* — Dashboard (métricas de anúncios) ---------------------------------------- */
@@ -132,6 +204,301 @@
         '<span class="pnl-stat-card__value">' + formatarValor(dados[c.chave], c.formato) + '</span>' +
         (c.sub ? '<span class="pnl-stat-card__sub">' + escapeHtml(c.sub) + '</span>' : '') +
         '</div>';
+    }).join('');
+  }
+
+  /* — Gráficos (Chart.js, só existem no layout desktop) ----------------------- */
+
+  function destruirGraficos() {
+    Object.keys(state.charts).forEach(function (chave) {
+      if (state.charts[chave]) { state.charts[chave].destroy(); state.charts[chave] = null; }
+    });
+  }
+
+  /* — Gráficos ------------------------------------------------------------
+     Padrão comum: fundo escuro da marca, número em pt-BR, tooltip legível
+     e ponteiro guiado pelo eixo X (passa o cursor e vê o dia inteiro). */
+  var FMT_INT = new Intl.NumberFormat('pt-BR');
+  var FMT_BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+  var COR_GRID = 'rgba(255,255,255,.05)';
+  var COR_TICK = '#8f94a3';
+
+  function tooltipPadrao(formatarLabel) {
+    return {
+      backgroundColor: 'rgba(12,13,19,.96)',
+      borderColor: 'rgba(216,179,74,.35)',
+      borderWidth: 1,
+      titleColor: '#f3f5fe',
+      bodyColor: '#c8ccd6',
+      padding: 11,
+      cornerRadius: 10,
+      boxWidth: 9,
+      boxHeight: 9,
+      boxPadding: 5,
+      callbacks: formatarLabel ? { label: formatarLabel } : {}
+    };
+  }
+
+  /* Gradiente vertical: sem isso a área do gráfico fica um bloco chapado. */
+  function gradienteOuro(ctx, area) {
+    if (!area) return 'rgba(255,212,0,.2)';
+    var g = ctx.createLinearGradient(0, area.top, 0, area.bottom);
+    g.addColorStop(0, 'rgba(255,212,0,.34)');
+    g.addColorStop(1, 'rgba(255,212,0,0)');
+    return g;
+  }
+
+  function renderCharts(dados) {
+    if (state.aba !== 'dashboard' || !dados) return;
+    destruirGraficos();
+
+    var serie = dados.serieDiaria || [];
+    var rotulos = serie.map(function (d) {
+      var p = String(d.data).split('-');          /* AAAA-MM-DD -> DD/MM */
+      return p.length === 3 ? p[2] + '/' + p[1] : String(d.data);
+    });
+
+    /* ── Gasto por dia ─────────────────────────────────────────────────── */
+    state.charts.gasto = new Chart(el['pnl-chart-gasto'].getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: rotulos,
+        datasets: [{
+          label: 'Gasto',
+          data: serie.map(function (d) { return d.gasto; }),
+          borderColor: COR_OURO_CLARA,
+          borderWidth: 2,
+          backgroundColor: function (c) {
+            return gradienteOuro(c.chart.ctx, c.chart.chartArea);
+          },
+          fill: true,
+          tension: 0.38,
+          /* ponto some em repouso e aparece no hover: linha limpa, mas
+             ainda dá para mirar o dia exato */
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          pointBackgroundColor: COR_OURO_CLARA,
+          pointHoverBorderColor: '#0b0c12',
+          pointHoverBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: tooltipPadrao(function (c) { return '  ' + FMT_BRL.format(c.parsed.y); })
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: COR_TICK,
+              maxTicksLimit: 5,
+              padding: 8,
+              callback: function (v) { return 'R$ ' + FMT_INT.format(v); }
+            },
+            grid: { color: COR_GRID }
+          },
+          x: {
+            ticks: { color: COR_TICK, maxRotation: 0, autoSkipPadding: 14 },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+
+    /* ── Cliques × impressões ───────────────────────────────────────────
+       Antes as duas séries dividiam o mesmo eixo. Como impressão é ~50x
+       clique, a barra de cliques ficava colada no zero, invisível. Agora
+       impressão é barra (eixo da esquerda) e clique é linha (eixo da
+       direita) — cada um na sua escala, dá para ler os dois juntos. */
+    state.charts.cliques = new Chart(el['pnl-chart-cliques'].getContext('2d'), {
+      data: {
+        labels: rotulos,
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Impressões',
+            yAxisID: 'y',
+            data: serie.map(function (d) { return d.impressoes; }),
+            backgroundColor: 'rgba(163,130,63,.55)',
+            hoverBackgroundColor: 'rgba(163,130,63,.85)',
+            borderRadius: 5,
+            borderSkipped: false,
+            order: 2
+          },
+          {
+            type: 'line',
+            label: 'Cliques',
+            yAxisID: 'yCliques',
+            data: serie.map(function (d) { return d.cliques; }),
+            borderColor: COR_OURO_CLARA,
+            borderWidth: 2,
+            backgroundColor: 'transparent',
+            tension: 0.38,
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            pointBackgroundColor: COR_OURO_CLARA,
+            order: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            labels: {
+              color: '#c8ccd6',
+              usePointStyle: true,
+              pointStyle: 'circle',
+              boxWidth: 8,
+              padding: 16
+            }
+          },
+          tooltip: tooltipPadrao(function (c) {
+            return '  ' + c.dataset.label + ': ' + FMT_INT.format(c.parsed.y);
+          })
+        },
+        scales: {
+          y: {
+            position: 'left',
+            beginAtZero: true,
+            title: { display: true, text: 'Impressões', color: COR_TICK, font: { size: 10 } },
+            ticks: {
+              color: COR_TICK,
+              maxTicksLimit: 5,
+              padding: 8,
+              callback: function (v) { return v >= 1000 ? (v / 1000) + 'k' : v; }
+            },
+            grid: { color: COR_GRID }
+          },
+          yCliques: {
+            position: 'right',
+            beginAtZero: true,
+            title: { display: true, text: 'Cliques', color: COR_OURO_MEDIA, font: { size: 10 } },
+            ticks: { color: COR_OURO_MEDIA, maxTicksLimit: 5, padding: 8 },
+            /* uma grade só; duas viram teia */
+            grid: { drawOnChartArea: false }
+          },
+          x: {
+            ticks: { color: COR_TICK, maxRotation: 0, autoSkipPadding: 14 },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+
+    /* ── Resultados por categoria ──────────────────────────────────────── */
+    var categorias = dados.categorias || [];
+    var totalCat = categorias.reduce(function (s, c) { return s + c.resultados; }, 0);
+
+    state.charts.categorias = new Chart(el['pnl-chart-categorias'].getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: categorias.map(function (c) { return categoriaRotulo(c.categoria); }),
+        datasets: [{
+          data: categorias.map(function (c) { return c.resultados; }),
+          backgroundColor: [COR_OURO_CLARA, COR_OURO_MEDIA, COR_OURO_ESCURA],
+          borderColor: '#0e0f14',
+          borderWidth: 3,
+          hoverOffset: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: '#c8ccd6',
+              usePointStyle: true,
+              pointStyle: 'circle',
+              boxWidth: 8,
+              padding: 14
+            }
+          },
+          tooltip: tooltipPadrao(function (c) {
+            var pct = totalCat ? Math.round((c.parsed / totalCat) * 100) : 0;
+            return '  ' + FMT_INT.format(c.parsed) + ' (' + pct + '%)';
+          })
+        }
+      },
+      /* total no buraco da rosca: o número que importa fica no centro */
+      plugins: [{
+        id: 'totalNoCentro',
+        afterDraw: function (chart) {
+          var area = chart.chartArea;
+          if (!area) return;
+          var ctx = chart.ctx;
+          var cx = (area.left + area.right) / 2;
+          var cy = (area.top + area.bottom) / 2;
+          ctx.save();
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#f3f5fe';
+          ctx.font = '600 26px Outfit, system-ui, sans-serif';
+          ctx.fillText(FMT_INT.format(totalCat), cx, cy - 7);
+          ctx.fillStyle = COR_TICK;
+          ctx.font = '500 10px Manrope, system-ui, sans-serif';
+          ctx.fillText('CONVERSAS', cx, cy + 13);
+          ctx.restore();
+        }
+      }]
+    });
+  }
+
+  /* — Mais procurados: agrega a tabela `cliques` do periodo escolhido.
+     Vem do proprio Supabase (nao do Meta), entao independe da conta de
+     anuncios estar configurada. */
+  async function carregarInteresse() {
+    var alvo = el['pnl-interesse'];
+    if (!alvo) return;
+
+    var dias = state.dashPeriodo === '30d' ? 30 : 7;
+    var desde = new Date(Date.now() - dias * 864e5).toISOString();
+
+    var res = await sb
+      .from('cliques')
+      .select('origem, produto_id, produtos(nome_modelo)')
+      .gte('created_at', desde)
+      .limit(2000);
+
+    if (res.error) {
+      alvo.innerHTML = '<li class="pnl-interesse__vazio">Não foi possível carregar os cliques.</li>';
+      return;
+    }
+
+    var linhas = res.data || [];
+    if (!linhas.length) {
+      alvo.innerHTML = '<li class="pnl-interesse__vazio">Nenhum clique registrado ainda neste período.</li>';
+      return;
+    }
+
+    var contagem = {};
+    linhas.forEach(function (c) {
+      var nome = (c.produtos && c.produtos.nome_modelo) || c.origem || 'geral';
+      contagem[nome] = (contagem[nome] || 0) + 1;
+    });
+
+    var ordenado = Object.keys(contagem)
+      .map(function (k) { return { nome: k, n: contagem[k] }; })
+      .sort(function (a, b) { return b.n - a.n; })
+      .slice(0, 8);
+
+    var maior = ordenado[0].n;
+    alvo.innerHTML = ordenado.map(function (item) {
+      var pct = Math.round((item.n / maior) * 100);
+      return '<li class="pnl-interesse__item">' +
+          '<span class="pnl-interesse__nome">' + escapeHtml(item.nome) + '</span>' +
+          '<span class="pnl-interesse__barra"><i style="width:' + pct + '%"></i></span>' +
+          '<span class="pnl-interesse__n">' + item.n + '</span>' +
+        '</li>';
     }).join('');
   }
 
@@ -155,10 +522,15 @@
       var dados = await resp.json();
       if (meuPedido !== state.dashPedidoId) return;
       renderDashboard(dados);
+      state.dashDados = dados;
+      renderCharts(dados);
+      carregarInteresse();
     } catch (error) {
       if (meuPedido !== state.dashPedidoId) return;
       el['pnl-dash-error'].hidden = false;
       el['pnl-dash-error'].textContent = 'Não foi possível carregar as métricas de anúncios.';
+      /* o bloco de interesse não depende do Meta — carrega de qualquer jeito */
+      carregarInteresse();
     } finally {
       if (meuPedido === state.dashPedidoId) el['pnl-dash-cards'].removeAttribute('aria-busy');
     }
@@ -184,6 +556,7 @@
     renderFiltros();
     renderResumo();
     renderGrid();
+    renderTabela();
   }
 
   function renderResumo() {
@@ -210,13 +583,40 @@
   }
 
   function produtosVisiveis() {
-    return state.filtro === 'todos' ? state.produtos : state.produtos.filter(function (p) { return p.categoria === state.filtro; });
+    var lista = state.filtro === 'todos' ? state.produtos : state.produtos.filter(function (p) { return p.categoria === state.filtro; });
+    var termo = state.busca.trim().toLowerCase();
+    if (!termo) return lista;
+    return lista.filter(function (p) { return p.nome_modelo.toLowerCase().indexOf(termo) !== -1; });
+  }
+
+  /* Ícones e sub-componentes compartilhados entre o card (grade) e a
+     linha da tabela — mesmo visual nos dois modos de visualização. */
+  var ICONE_EDITAR = '<svg viewBox="0 0 256 256" fill="currentColor" width="17" height="17" aria-hidden="true"><path d="m227.31 73.37-44.68-44.69a16 16 0 0 0-22.63 0L36.69 152A15.86 15.86 0 0 0 32 163.31V208a16 16 0 0 0 16 16h44.69a15.86 15.86 0 0 0 11.31-4.69L227.31 96a16 16 0 0 0 0-22.63ZM92.69 208H48v-44.69l88-88L180.69 120ZM192 108.68 147.31 64l24-24L216 84.68Z"></path></svg>';
+  var ICONE_DUPLICAR = '<svg viewBox="0 0 256 256" fill="currentColor" width="17" height="17" aria-hidden="true"><path d="M216 32H88a8 8 0 0 0-8 8v40H40a8 8 0 0 0-8 8v128a8 8 0 0 0 8 8h128a8 8 0 0 0 8-8v-40h40a8 8 0 0 0 8-8V40a8 8 0 0 0-8-8Zm-56 176H48V96h112Zm48-48h-32V88a8 8 0 0 0-8-8H96V48h112Z"></path></svg>';
+  var ICONE_EXCLUIR = '<svg viewBox="0 0 256 256" fill="currentColor" width="17" height="17" aria-hidden="true"><path d="M216 48h-40v-8a24 24 0 0 0-24-24h-48a24 24 0 0 0-24 24v8H40a8 8 0 0 0 0 16h8v144a16 16 0 0 0 16 16h128a16 16 0 0 0 16-16V64h8a8 8 0 0 0 0-16ZM96 40a8 8 0 0 1 8-8h48a8 8 0 0 1 8 8v8H96Zm96 168H64V64h128Zm-80-104v64a8 8 0 0 1-16 0v-64a8 8 0 0 1 16 0Zm48 0v64a8 8 0 0 1-16 0v-64a8 8 0 0 1 16 0Z"></path></svg>';
+
+  function trilhoHtml(on) {
+    return '<span class="pnl-toggle' + (on ? ' is-on' : '') + '"><span class="pnl-toggle__thumb"></span></span>';
+  }
+
+  function estrelaHtml(on) {
+    return '<svg class="' + (on ? 'is-on' : '') + '" viewBox="0 0 256 256" width="18" height="18" aria-hidden="true"><path d="M239.2 97.29a16 16 0 0 0-13.81-11L166 81.17 142.72 25.81a15.95 15.95 0 0 0-29.44 0L90 81.17 30.61 86.32a16 16 0 0 0-9.11 28.06l45 39.29-13.42 58.6a16 16 0 0 0 23.84 17.34L128 199.35l51.08 30.26a16 16 0 0 0 23.84-17.34l-13.42-58.6 45-39.29a16 16 0 0 0 4.7-17.09Z"></path></svg>';
+  }
+
+  function botoesAcaoHtml(p) {
+    return (
+      '<button type="button" class="pnl-icon-btn" data-action="editar" aria-label="Editar" title="Editar">' + ICONE_EDITAR + '</button>' +
+      '<button type="button" class="pnl-icon-btn" data-action="duplicar" aria-label="Duplicar" title="Duplicar">' + ICONE_DUPLICAR + '</button>' +
+      '<button type="button" class="pnl-icon-btn pnl-icon-btn--danger" data-action="excluir" aria-label="Excluir" title="Excluir">' + ICONE_EXCLUIR + '</button>'
+    );
   }
 
   function cardTemplate(p) {
     var foto = p.imagem_url || PLACEHOLDER_FOTO;
+    var marcado = state.selecionados.has(p.id);
     return (
       '<article class="pnl-card" data-id="' + p.id + '">' +
+        '<input type="checkbox" class="pnl-select-check" data-id="' + p.id + '"' + (marcado ? ' checked' : '') + ' aria-label="Selecionar ' + escapeHtml(p.nome_modelo) + '">' +
         '<div class="pnl-card__photo-wrap">' +
           '<span class="pnl-card__photo lighten" style="background-image:url(\'' + escapeHtml(foto) + '\')"></span>' +
           (p.destaque ? '<span class="pnl-card__badge">Destaque</span>' : '') +
@@ -228,32 +628,41 @@
               '<div class="pnl-card__tags">' +
                 '<span class="pnl-tag">' + escapeHtml(categoriaRotulo(p.categoria)) + '</span>' +
                 '<span class="pnl-card__color">' + escapeHtml(p.cor) + '</span>' +
+                precoHtml(p) +
               '</div>' +
+              specHtml(p) +
             '</div>' +
-            '<div class="pnl-card__actions">' +
-              '<button type="button" class="pnl-icon-btn" data-action="editar" aria-label="Editar" title="Editar">' +
-                '<svg viewBox="0 0 256 256" fill="currentColor" width="17" height="17" aria-hidden="true"><path d="m227.31 73.37-44.68-44.69a16 16 0 0 0-22.63 0L36.69 152A15.86 15.86 0 0 0 32 163.31V208a16 16 0 0 0 16 16h44.69a15.86 15.86 0 0 0 11.31-4.69L227.31 96a16 16 0 0 0 0-22.63ZM92.69 208H48v-44.69l88-88L180.69 120ZM192 108.68 147.31 64l24-24L216 84.68Z"></path></svg>' +
-              '</button>' +
-              '<button type="button" class="pnl-icon-btn" data-action="duplicar" aria-label="Duplicar" title="Duplicar">' +
-                '<svg viewBox="0 0 256 256" fill="currentColor" width="17" height="17" aria-hidden="true"><path d="M216 32H88a8 8 0 0 0-8 8v40H40a8 8 0 0 0-8 8v128a8 8 0 0 0 8 8h128a8 8 0 0 0 8-8v-40h40a8 8 0 0 0 8-8V40a8 8 0 0 0-8-8Zm-56 176H48V96h112Zm48-48h-32V88a8 8 0 0 0-8-8H96V48h112Z"></path></svg>' +
-              '</button>' +
-              '<button type="button" class="pnl-icon-btn pnl-icon-btn--danger" data-action="excluir" aria-label="Excluir" title="Excluir">' +
-                '<svg viewBox="0 0 256 256" fill="currentColor" width="17" height="17" aria-hidden="true"><path d="M216 48h-40v-8a24 24 0 0 0-24-24h-48a24 24 0 0 0-24 24v8H40a8 8 0 0 0 0 16h8v144a16 16 0 0 0 16 16h128a16 16 0 0 0 16-16V64h8a8 8 0 0 0 0-16ZM96 40a8 8 0 0 1 8-8h48a8 8 0 0 1 8 8v8H96Zm96 168H64V64h128Zm-80-104v64a8 8 0 0 1-16 0v-64a8 8 0 0 1 16 0Zm48 0v64a8 8 0 0 1-16 0v-64a8 8 0 0 1 16 0Z"></path></svg>' +
-              '</button>' +
-            '</div>' +
+            '<div class="pnl-card__actions">' + botoesAcaoHtml(p) + '</div>' +
           '</div>' +
           '<div class="pnl-card__toggles">' +
             '<button type="button" class="pnl-toggle-btn" data-action="toggle-disponivel">' +
-              '<span class="pnl-toggle' + (p.disponivel ? ' is-on' : '') + '"><span class="pnl-toggle__thumb"></span></span>' +
+              trilhoHtml(p.disponivel) +
               '<span class="pnl-toggle-label' + (p.disponivel ? ' is-on' : '') + '">Disponível</span>' +
             '</button>' +
             '<button type="button" class="pnl-star-btn" data-action="toggle-destaque" aria-label="Destaque">' +
-              '<svg class="' + (p.destaque ? 'is-on' : '') + '" viewBox="0 0 256 256" width="18" height="18" aria-hidden="true"><path d="M239.2 97.29a16 16 0 0 0-13.81-11L166 81.17 142.72 25.81a15.95 15.95 0 0 0-29.44 0L90 81.17 30.61 86.32a16 16 0 0 0-9.11 28.06l45 39.29-13.42 58.6a16 16 0 0 0 23.84 17.34L128 199.35l51.08 30.26a16 16 0 0 0 23.84-17.34l-13.42-58.6 45-39.29a16 16 0 0 0 4.7-17.09Z"></path></svg>' +
+              estrelaHtml(p.destaque) +
               '<span class="pnl-toggle-label pnl-toggle-label--gold' + (p.destaque ? ' is-on' : '') + '">Destaque</span>' +
             '</button>' +
           '</div>' +
         '</div>' +
       '</article>'
+    );
+  }
+
+  function linhaTabela(p) {
+    var foto = p.imagem_url || PLACEHOLDER_FOTO;
+    var marcado = state.selecionados.has(p.id);
+    return (
+      '<tr data-id="' + p.id + '">' +
+        '<td><input type="checkbox" class="pnl-select-check" data-id="' + p.id + '"' + (marcado ? ' checked' : '') + ' aria-label="Selecionar ' + escapeHtml(p.nome_modelo) + '"></td>' +
+        '<td><img class="pnl-tabela__thumb" src="' + escapeHtml(foto) + '" alt=""></td>' +
+        '<td class="pnl-tabela__nome">' + escapeHtml(p.nome_modelo) + (p.destaque ? ' ★' : '') + '</td>' +
+        '<td>' + escapeHtml(categoriaRotulo(p.categoria)) + '</td>' +
+        '<td>' + escapeHtml(p.cor) + '</td>' +
+        '<td><button type="button" class="pnl-toggle-btn" data-action="toggle-disponivel">' + trilhoHtml(p.disponivel) + '</button></td>' +
+        '<td><button type="button" class="pnl-star-btn" data-action="toggle-destaque" aria-label="Destaque">' + estrelaHtml(p.destaque) + '</button></td>' +
+        '<td class="pnl-tabela__acoes">' + botoesAcaoHtml(p) + '</td>' +
+      '</tr>'
     );
   }
 
@@ -263,12 +672,36 @@
     el['pnl-empty'].hidden = visiveis.length !== 0;
   }
 
+  function renderTabela() {
+    el['pnl-tabela-body'].innerHTML = produtosVisiveis().map(linhaTabela).join('');
+  }
+
+  /* — Visualização Grade/Tabela (só existe no layout desktop) ----------------- */
+
+  function aplicarVisualizacao() {
+    var tabela = state.isDesktop && state.visualizacao === 'tabela';
+    el['pnl-grid'].hidden = tabela;
+    el['pnl-tabela'].hidden = !tabela;
+  }
+
+  function forcarVisualizacaoGrade() {
+    el['pnl-grid'].hidden = false;
+    el['pnl-tabela'].hidden = true;
+  }
+
   function encontrarProduto(id) {
     return state.produtos.filter(function (p) { return String(p.id) === String(id); })[0];
   }
 
   function setupGridDelegation() {
-    document.getElementById('pnl-grid').addEventListener('click', function (ev) {
+    el['pnl-produtos-lista'].addEventListener('click', function (ev) {
+      var check = ev.target.closest('.pnl-select-check');
+      if (check) {
+        if (check.checked) state.selecionados.add(check.dataset.id);
+        else state.selecionados.delete(check.dataset.id);
+        atualizarBarraSelecao();
+        return;
+      }
       var btn = ev.target.closest('[data-action]');
       if (!btn) return;
       var card = ev.target.closest('[data-id]');
@@ -280,6 +713,16 @@
       else if (action === 'excluir') abrirConfirm(produto);
       else if (action === 'toggle-disponivel') alternarCampo(produto, 'disponivel');
       else if (action === 'toggle-destaque') alternarCampo(produto, 'destaque');
+    });
+
+    el['pnl-tabela-check-all'].addEventListener('change', function (ev) {
+      var lista = produtosVisiveis();
+      lista.forEach(function (p) {
+        if (ev.target.checked) state.selecionados.add(p.id);
+        else state.selecionados.delete(p.id);
+      });
+      render();
+      atualizarBarraSelecao();
     });
   }
 
@@ -308,7 +751,49 @@
     }
   }
 
+  /* — Seleção em lote (só existe no layout desktop) ---------------------------- */
+
+  var ACOES_LOTE = {
+    'disponivel-on': ['disponivel', true],
+    'disponivel-off': ['disponivel', false],
+    'destaque-on': ['destaque', true],
+    'destaque-off': ['destaque', false]
+  };
+
+  function atualizarBarraSelecao() {
+    var n = state.selecionados.size;
+    el['pnl-bulk-bar'].hidden = n === 0;
+    el['pnl-bulk-count'].textContent = n === 1 ? '1 selecionado' : n + ' selecionados';
+  }
+
+  async function aplicarAcaoLote(chaveAcao) {
+    var par = ACOES_LOTE[chaveAcao];
+    if (!par) return;
+    var ids = Array.from(state.selecionados);
+    if (!ids.length) return;
+
+    var payload = {};
+    payload[par[0]] = par[1];
+    var res = await sb.from('produtos').update(payload).in('id', ids);
+    if (res.error) {
+      showToast('Não foi possível atualizar em lote. Tente novamente.');
+      return;
+    }
+    state.selecionados.clear();
+    atualizarBarraSelecao();
+    carregarProdutos();
+    showToast('Produtos atualizados.', 'sucesso');
+  }
+
   /* — Modal adicionar/editar/duplicar --------------------------------------- */
+
+  /* Saúde da bateria só faz sentido em aparelho que já foi usado. */
+  function atualizarCampoBateria() {
+    var c = el['pnl-condicao'].value;
+    var mostra = c === 'seminovo' || c === 'usado';
+    el['pnl-bateria-field'].hidden = !mostra;
+    if (!mostra) el['pnl-bateria'].value = '';
+  }
 
   function trilho(botao, on) {
     botao.querySelector('.pnl-toggle').classList.toggle('is-on', on);
@@ -329,6 +814,13 @@
     el['pnl-cor-select'].value = produtoBase ? (corConhecida ? corAtual : (corAtual ? 'Outra' : '')) : '';
     el['pnl-cor-outra'].value = produtoBase && !corConhecida ? corAtual : '';
     el['pnl-cor-outra-field'].hidden = el['pnl-cor-select'].value !== 'Outra';
+
+    el['pnl-preco'].value         = produtoBase && produtoBase.preco != null ? produtoBase.preco : '';
+    el['pnl-armazenamento'].value = produtoBase ? (produtoBase.armazenamento || '') : '';
+    el['pnl-condicao'].value      = produtoBase ? (produtoBase.condicao || '') : '';
+    el['pnl-garantia'].value      = produtoBase && produtoBase.garantia_meses != null ? produtoBase.garantia_meses : '';
+    el['pnl-bateria'].value       = produtoBase && produtoBase.bateria_pct != null ? produtoBase.bateria_pct : '';
+    atualizarCampoBateria();
 
     trilho(el['pnl-form-disponivel'], produtoBase ? produtoBase.disponivel : true);
     trilho(el['pnl-form-destaque'], produtoBase ? produtoBase.destaque : false);
@@ -358,11 +850,21 @@
   function atualizarPreviewFoto() {
     if (state.fotoPreviewUrl) {
       el['pnl-photo-preview'].style.backgroundImage = "url('" + state.fotoPreviewUrl + "')";
-      el['pnl-photo-caption'].textContent = 'Toque para trocar a imagem';
+      el['pnl-photo-caption'].textContent = 'Toque para trocar a imagem, ou arraste uma foto aqui';
     } else {
       el['pnl-photo-preview'].style.backgroundImage = 'none';
-      el['pnl-photo-caption'].textContent = 'Toque para escolher do celular';
+      el['pnl-photo-caption'].textContent = 'Toque para escolher, ou arraste uma foto aqui';
     }
+  }
+
+  /* Usada tanto pelo input de arquivo tradicional quanto pelo drop de
+     arrastar-e-soltar — mesma lógica, duas formas de disparar. */
+  function usarArquivoFoto(file) {
+    if (!file) return;
+    revogarPreviewSeNecessario();
+    state.fotoArquivo = file;
+    state.fotoPreviewUrl = URL.createObjectURL(file);
+    atualizarPreviewFoto();
   }
 
   function slugify(nome) {
@@ -396,10 +898,27 @@
     var corFinal = corSel === 'Outra' ? el['pnl-cor-outra'].value.trim() : corSel;
     if (!corFinal) { el['pnl-cor-select'].focus(); return; }
 
+    /* campo em branco vira null: o site trata ausência, não string vazia */
+    function numOuNulo(v) {
+      var t = String(v == null ? '' : v).trim().replace(',', '.');
+      if (!t) return null;
+      var n = Number(t);
+      return isFinite(n) ? n : null;
+    }
+    function txtOuNulo(v) {
+      var t = String(v == null ? '' : v).trim();
+      return t || null;
+    }
+
     var payload = {
       nome_modelo: nome,
       categoria: el['pnl-categoria'].value,
       cor: corFinal,
+      preco: numOuNulo(el['pnl-preco'].value),
+      armazenamento: txtOuNulo(el['pnl-armazenamento'].value),
+      condicao: txtOuNulo(el['pnl-condicao'].value),
+      garantia_meses: numOuNulo(el['pnl-garantia'].value),
+      bateria_pct: numOuNulo(el['pnl-bateria'].value),
       disponivel: el['pnl-form-disponivel'].dataset.on === '1',
       destaque: el['pnl-form-destaque'].dataset.on === '1'
     };
@@ -430,32 +949,40 @@
     }
   }
 
-  /* — Confirmação de exclusão ------------------------------------------------ */
+  /* — Confirmação de exclusão (aceita um produto único ou uma lista, pra
+     servir tanto o botão de excluir do card/linha quanto o "Excluir
+     selecionados" da barra de ações em lote) ------------------------------- */
 
-  function abrirConfirm(produto) {
-    state.excluindoId = produto.id;
-    el['pnl-confirm-text'].textContent = '"' + produto.nome_modelo + '" sai da lista e deixa de aparecer no site.';
+  function abrirConfirm(alvo) {
+    var lista = Array.isArray(alvo) ? alvo : [alvo];
+    state.excluindoIds = lista.map(function (p) { return p.id; });
+    el['pnl-confirm-title'].textContent = lista.length > 1 ? 'Excluir ' + lista.length + ' produtos?' : 'Excluir produto?';
+    el['pnl-confirm-text'].textContent = lista.length > 1
+      ? lista.length + ' produtos selecionados saem da lista e deixam de aparecer no site.'
+      : '"' + lista[0].nome_modelo + '" sai da lista e deixa de aparecer no site.';
     el['pnl-confirm-backdrop'].hidden = false;
   }
 
   function fecharConfirm() {
-    state.excluindoId = null;
+    state.excluindoIds = null;
     el['pnl-confirm-backdrop'].hidden = true;
   }
 
   async function confirmarExclusao() {
-    var id = state.excluindoId;
-    if (!id) return;
+    var ids = state.excluindoIds;
+    if (!ids || !ids.length) return;
     el['pnl-confirm-delete'].disabled = true;
-    var res = await sb.from('produtos').delete().eq('id', id);
+    var res = await sb.from('produtos').delete().in('id', ids);
     el['pnl-confirm-delete'].disabled = false;
     if (res.error) {
       showToast('Não foi possível excluir. Tente novamente.');
       return;
     }
+    ids.forEach(function (id) { state.selecionados.delete(id); });
     fecharConfirm();
+    atualizarBarraSelecao();
     carregarProdutos();
-    showToast('Produto excluído.', 'sucesso');
+    showToast(ids.length > 1 ? 'Produtos excluídos.' : 'Produto excluído.', 'sucesso');
   }
 
   /* — Eventos ----------------------------------------------------------------- */
@@ -482,6 +1009,18 @@
 
     el['pnl-tab-btn-dashboard'].addEventListener('click', function () { trocarAba('dashboard'); });
     el['pnl-tab-btn-produtos'].addEventListener('click', function () { trocarAba('produtos'); });
+    el['pnl-side-btn-dashboard'].addEventListener('click', function () { trocarAba('dashboard'); });
+    el['pnl-side-btn-produtos'].addEventListener('click', function () { trocarAba('produtos'); });
+    el['pnl-sidebar-logout'].addEventListener('click', function () { sb.auth.signOut(); });
+
+    el['pnl-sidebar-toggle'].addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      alternarSidebar();
+    });
+    el['pnl-sidebar'].addEventListener('click', function (ev) {
+      if (ev.target.closest('.pnl-side-tab, .pnl-sidebar__logout, #pnl-sidebar-toggle')) return;
+      if (!sidebarEstaExpandida()) alternarSidebar();
+    });
 
     el['pnl-period'].addEventListener('click', function (ev) {
       var btn = ev.target.closest('[data-period]');
@@ -500,6 +1039,39 @@
       render();
     });
 
+    var buscaTimer;
+    el['pnl-busca'].addEventListener('input', function (ev) {
+      window.clearTimeout(buscaTimer);
+      buscaTimer = window.setTimeout(function () {
+        state.busca = ev.target.value;
+        render();
+      }, 150);
+    });
+
+    document.querySelectorAll('.pnl-view-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        state.visualizacao = btn.dataset.view;
+        document.querySelectorAll('.pnl-view-btn').forEach(function (b) {
+          b.classList.toggle('is-active', b === btn);
+        });
+        aplicarVisualizacao();
+      });
+    });
+
+    el['pnl-bulk-bar'].addEventListener('click', function (ev) {
+      var bulkBtn = ev.target.closest('[data-bulk]');
+      if (bulkBtn) { aplicarAcaoLote(bulkBtn.dataset.bulk); return; }
+      if (ev.target === el['pnl-bulk-limpar']) {
+        state.selecionados.clear();
+        render();
+        atualizarBarraSelecao();
+      }
+    });
+    el['pnl-bulk-excluir'].addEventListener('click', function () {
+      var produtos = Array.from(state.selecionados).map(encontrarProduto).filter(Boolean);
+      if (produtos.length) abrirConfirm(produtos);
+    });
+
     setupGridDelegation();
 
     el['pnl-novo'].addEventListener('click', function () { abrirModal(null, false); });
@@ -508,17 +1080,35 @@
       if (ev.target === el['pnl-modal-backdrop']) fecharModal();
     });
 
+    el['pnl-condicao'].addEventListener('change', atualizarCampoBateria);
+
     el['pnl-cor-select'].addEventListener('change', function () {
       el['pnl-cor-outra-field'].hidden = el['pnl-cor-select'].value !== 'Outra';
     });
 
     el['pnl-foto'].addEventListener('change', function (ev) {
       var file = ev.target.files && ev.target.files[0];
-      if (!file) return;
-      revogarPreviewSeNecessario();
-      state.fotoArquivo = file;
-      state.fotoPreviewUrl = URL.createObjectURL(file);
-      atualizarPreviewFoto();
+      if (file) usarArquivoFoto(file);
+    });
+
+    var arrastesAtivos = 0;
+    el['pnl-photo-field'].addEventListener('dragenter', function (ev) {
+      ev.preventDefault();
+      arrastesAtivos++;
+      el['pnl-photo-field'].classList.add('is-dragover');
+    });
+    el['pnl-photo-field'].addEventListener('dragover', function (ev) { ev.preventDefault(); });
+    el['pnl-photo-field'].addEventListener('dragleave', function (ev) {
+      ev.preventDefault();
+      arrastesAtivos = Math.max(0, arrastesAtivos - 1);
+      if (arrastesAtivos === 0) el['pnl-photo-field'].classList.remove('is-dragover');
+    });
+    el['pnl-photo-field'].addEventListener('drop', function (ev) {
+      ev.preventDefault();
+      arrastesAtivos = 0;
+      el['pnl-photo-field'].classList.remove('is-dragover');
+      var file = ev.dataTransfer.files && ev.dataTransfer.files[0];
+      if (file) usarArquivoFoto(file);
     });
 
     el['pnl-form-disponivel'].addEventListener('click', function () {
@@ -556,6 +1146,26 @@
 
     sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
     setupEventos();
+
+    /* Estado da sidebar (expandida/colapsada) salvo entre sessões. Aplicado
+       aqui, antes de mostrarPainel() revelar qualquer coisa, então não há
+       flash do estado errado. */
+    var sidebarExpandidaSalva = false;
+    try { sidebarExpandidaSalva = window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1'; } catch (error) { /* localStorage indisponível — mantém colapsada */ }
+    aplicarEstadoSidebar(sidebarExpandidaSalva);
+
+    /* Layout desktop (≥1024px): sidebar, tabela, etc. Os gráficos
+       aparecem em qualquer largura e o próprio Chart.js já é responsive
+       (redesenha sozinho quando o contêiner muda de tamanho), então não
+       precisa recriar nada ao cruzar o breakpoint — só a visualização de
+       Produtos (Grade/Tabela) depende da largura. */
+    var mqlDesktop = window.matchMedia('(min-width: 1024px)');
+    state.isDesktop = mqlDesktop.matches;
+    mqlDesktop.addEventListener('change', function (ev) {
+      state.isDesktop = ev.matches;
+      if (!ev.matches) forcarVisualizacaoGrade();
+      else aplicarVisualizacao();
+    });
 
     /* onAuthStateChange dispara imediatamente com a sessão atual (evento
        INITIAL_SESSION), então não precisa de um getSession() em paralelo.
